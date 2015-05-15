@@ -50,7 +50,7 @@
   (response/xexpr
     `(html (head (title "whalebin!"))
            (body (p (h2 "whalebin : recent pastes") 
-                   ,(append '(ul) (map name->li (get-recent-pastes))))))))
+                   (ul ,@(map name->li (get-recent-pastes))))))))
 
 (define (get-paste-url name)
   (string-append "/get/" name))
