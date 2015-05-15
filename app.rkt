@@ -91,4 +91,5 @@
                #:stateless? #t
                #:servlet-path "/"
                #:servlet-regexp #rx".*"
-               #:servlet-current-directory ".")
+               #:servlet-current-directory "."
+               #:launch-browser? false)
