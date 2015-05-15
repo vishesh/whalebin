@@ -4,6 +4,7 @@
 
 ; Constants
 
+(define SERVER-ROOT "http://localhost:8000")
 (define REPO-SUBDIR-NAME-LEN 2)
 (define NAME-LEN 5)
 
