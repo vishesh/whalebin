@@ -28,8 +28,18 @@
 (define TABLE-WORKER "worker_queue")
 (define CHARS "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789")
 
-; TODO: check if name exists in db in separate fn
+; random-name : Integer -> Name
+; Returns a random name using random-string that has not been used by any
+; paste. Wont halt if all names ore consumed, so choose a reasonable len
 (define (random-name len)
+  (let loop ([name (random-string len)])
+    (if (paste-exists? name)
+      (loop)
+      name)))
+
+; random-string : Integer -> Name
+; Returns a random string of length len with chars from CHAR
+(define (random-string len)
   (define lc (string-length CHARS))
   (list->string (for/list ([i (range len)])
                           (string-ref CHARS (random lc)))))
