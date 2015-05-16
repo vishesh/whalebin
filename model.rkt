@@ -20,9 +20,9 @@
 ; TODO: use connection pool
 ; http://docs.racket-lang.org/db/using-db.html#%28part._intro-servlets%29
 (define dbconn
-  (mysql-connect #:user "racket"
-                 #:database "bigbang"
-                 #:password "racket"))
+  (mysql-connect #:user DB-USER
+                 #:database DB-NAME
+                 #:password DB-PASSWORD))
 
 (define TABLE-PASTES "pastes")
 (define TABLE-WORKER "worker_queue")

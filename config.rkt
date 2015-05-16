@@ -10,3 +10,7 @@
 
 (define REPO-SOURCE "data/src")
 (define REPO-OUTPUT "data/outputs")
+
+(define DB-USER "racket")
+(define DB-PASSWORD "racket")
+(define DB-NAME "bigbang")
