@@ -85,14 +85,12 @@
     (format "SELECT name FROM ~a ORDER BY ts DESC LIMIT 10" TABLE-PASTES)))
 
 ; paste-output-ready? : Name -> Boolean
+; WHERE: (paste-exisits? name) is true
 (define (paste-output-ready? name)
-  (define paste-id (get-paste-id name))
-  (if paste-id
-      (not (query-maybe-value
-            dbconn
-            (format "SELECT paste_id FROM ~a WHERE paste_id = ?" TABLE-WORKER)
-            paste-id))
-      #t))
+  (not (query-maybe-value
+         dbconn
+         (format "SELECT paste_id FROM ~a WHERE paste_id = ?" TABLE-WORKER)
+         (get-paste-id name))))
 
 ; create-paste! : Name bytes -> Void
 ; TODO: put both queries in transaction
@@ -109,10 +107,9 @@
 
 ; finish-compile : Name -> Void
 (define (finish-compile name)
-  (define paste-id (get-paste-id name))
   (query-exec dbconn
               (format "DELETE FROM ~a WHERE paste_id = ?" TABLE-WORKER)
-              paste-id))
+              (get-paste-id name)))
 
 ; compile-source : Name -> Void
 ; Spawns a new thread to compile whalesong program
