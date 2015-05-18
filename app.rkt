@@ -48,36 +48,36 @@
 (define (serve-upload req)
   (define name (random-name NAME-LEN))
   (define bindings (request-bindings req))
-  (if (exists-binding? 'source bindings)
-    (begin
-      (create-paste!
-        name (string->bytes/utf-8 (extract-binding/single 'source bindings)))
-      (response/xexpr
-        `(html
-           (head (title "whalebin : upload"))
-           (body
-             (h2 "source uploaded")
-             (p ,(string-append
-                   "Program successfully uploaded. Compilation can take "
-                   "few seconds to complete. ")
-                (a ((href ,(get-paste-url name))) ,(get-paste-url name)))))))
-    (response/message "Invalid params passed")))
+  (cond
+    [(exists-binding? 'source bindings)
+     (create-paste!
+      name (string->bytes/utf-8 (extract-binding/single 'source bindings)))
+     (response/xexpr
+      `(html
+        (head (title "whalebin : upload"))
+        (body
+         (h2 "source uploaded")
+         (p ,(string-append
+              "Program successfully uploaded. Compilation can take "
+              "few seconds to complete. ")
+            (a ([href ,(get-paste-url name)]) ,(get-paste-url name))))))]
+    [else (response/message "Invalid params passed")]))
 
 ; serve-default : Request -> Response
 (define (serve-default req)
   (define (name->li name)
-    `(li (a ((href ,(get-paste-url name))) ,name)))
+    `(li (a ([href ,(get-paste-url name)]) ,name)))
   (response/xexpr
     `(html (head (title "whalebin!"))
            (body
              (h2 "whalebin")
-             (div ((style "float: left; width: 200px;"))
+             (div ([style "float: left; width: 200px;"])
                   (h4 "recent pastes")
                   (ul ,@(map name->li (get-recent-pastes))))
              (div ((style "float: left; width: 300px;"))
-                  (form ((method "post") (action "/upload"))
-                        (textarea ((name "source") (cols "80") (rows "30")))
-                        (input ((type "submit") (value "Upload")))))))))
+                  (form ([method "post"] [action "/upload"])
+                        (textarea ([name "source"] [cols "80"] [rows "30"]))
+                        (input ([type "submit"] [value "Upload"]))))))))
 
 ; get-paste-url : Name -> String
 (define (get-paste-url name)

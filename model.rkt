@@ -88,11 +88,11 @@
 (define (paste-output-ready? name)
   (define paste-id (get-paste-id name))
   (if paste-id
-    (not (query-maybe-value
-           dbconn
-           (format "SELECT paste_id FROM ~a WHERE paste_id = ?" TABLE-WORKER)
-           paste-id))
-    #t))
+      (not (query-maybe-value
+            dbconn
+            (format "SELECT paste_id FROM ~a WHERE paste_id = ?" TABLE-WORKER)
+            paste-id))
+      #t))
 
 ; create-paste! : Name bytes -> Void
 ; TODO: put both queries in transaction
@@ -122,5 +122,5 @@
     (λ ()
       (parameterize ([current-output-dir
                       (path-only (repo-filepath REPO-OUTPUT name))])
-                    (build-standalone-html (repo-filepath REPO-SOURCE name)))
+        (build-standalone-html (repo-filepath REPO-SOURCE name)))
       (finish-compile name))))
