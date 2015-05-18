@@ -42,7 +42,7 @@
     200 #"OK"
     (current-seconds) MIME-PLAIN-TEXT
     '()
-    (list (string->bytes/utf-8 name))))
+    (list (string->bytes/utf-8 (get-paste-url name)))))
 
 ; serve-upload : Request -> Response
 (define (serve-upload req)
