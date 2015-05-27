@@ -14,3 +14,7 @@
 (define DB-USER "racket")
 (define DB-PASSWORD "racket")
 (define DB-NAME "bigbang")
+
+(define SESSION-COOKIE-NAME "session") 
+(define SESSION-COOKIE-SALT #"abcdefgijklmonp")
+
