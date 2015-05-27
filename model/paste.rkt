@@ -16,6 +16,7 @@
          paste-output-ready?
          create-paste!
          finish-compile
+         paste-views-add1
          get-user-pastes)
 
 ; Name is [a-zA-Z0-9]+
@@ -94,7 +95,7 @@
 (define (paste-views-add1 name)
   (query-exec
     DB-CONN
-    (format "UPDATE ~a SET views = views + 1 WHERE id = ?") TABLE-PASTES
+    (format "UPDATE ~a SET views = views + 1 WHERE id = ?" TABLE-PASTES)
     (get-paste-id name)))
 
 ; get-user-pastes : Integer -> ListOf<Name>

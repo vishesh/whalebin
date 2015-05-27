@@ -46,13 +46,15 @@
 ; serve-get : Request Name -> Response
 (define (serve-get req name)
   (if (paste-exists? name)
-    (if (paste-output-ready? name)
-      (response/full
-        200 #"OK"
-        (current-seconds) TEXT/HTML-MIME-TYPE
-        '()
-        (list (port->bytes (paste-web-output name))))
-      (response/message "Paste is not compiled yet! Try again in few seconds"))
+    (cond
+      [(paste-output-ready? name)
+       (paste-views-add1 name)
+       (response/full
+         200 #"OK"
+         (current-seconds) TEXT/HTML-MIME-TYPE
+         '()
+         (list (port->bytes (paste-web-output name))))]
+      [else (response/message "Paste is not compiled yet! Try again in few seconds")])
     (response/message "Paste not found!")))
 
 ; serve-api-upload : Request -> Response
