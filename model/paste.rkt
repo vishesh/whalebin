@@ -70,11 +70,12 @@
 
 ; create-paste! : Name bytes -> Void
 ; TODO: put both queries in transaction
-(define (create-paste! name content [userid #f])
+(define (create-paste! name content [title ""] [description ""] [userid #f])
   (query-exec
     DB-CONN
-    (format "INSERT INTO ~a (name, user_id) VALUES (?, ?)" TABLE-PASTES)
-    name userid)
+    (format "INSERT INTO ~a (name, user_id, title, desc) VALUES (?, ?, ?, ?)"
+            TABLE-PASTES)
+    name userid title description)
   (query-exec
     DB-CONN
     (format "INSERT INTO ~a (paste_id) VALUES (?)" TABLE-WORKER)

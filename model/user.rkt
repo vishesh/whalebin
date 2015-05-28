@@ -11,15 +11,28 @@
          destroy-session
          session-user)
 
-; UserName is [a-zA-Z0-9]{4,16}
+; UserName is [a-zA-Z0-9_]{4,16}
+
+; username? : Any -> Boolean
+(define (username? a)
+  (and (string? a)
+       (<= 4 (string-length a) 16)
+       (string? (regexp-match #rx"^[a-zA-Z0-9_]+$" a))))
+
+; password? : Any -> Boolean
+(define (password? p)
+  (and (string? p)
+       (<= 8 (string-length p) 20)
+       (string? (regexp-match #rx"[a-zA-Z0-9_@#$%]+$" p))))
 
 ; create-user : String String -> Void
 ; WHERE: (get-user-id username) == false
 (define (create-user username password)
-  (query-exec
-    DB-CONN
-    (format "INSERT INTO ~a (username, password) VALUES (?, SHA1(?))" TABLE-USERS)
-    username password))
+  (when (and (username? username) (password? password))
+    (query-exec
+      DB-CONN
+      (format "INSERT INTO ~a (username, password) VALUES (?, SHA1(?))" TABLE-USERS)
+      username password)))
 
 ; String -> Maybe<Integer>
 (define (get-user-id username)

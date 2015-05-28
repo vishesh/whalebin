@@ -31,7 +31,6 @@
     [("profile" (string-arg)) #:method "get" serve-profile]
     [else serve-default]))
 
-
 (define (request-session-token req)
   (request-id-cookie SESSION-COOKIE-NAME SESSION-COOKIE-SALT req))
 

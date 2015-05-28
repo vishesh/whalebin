@@ -42,7 +42,8 @@
                 (format "CREATE TABLE ~a (
                            id INTEGER PRIMARY KEY NOT NULL AUTO_INCREMENT,
                            name VARCHAR(16) NOT NULL UNIQUE,
-                           description VARCHAR(255), 
+                           title VARCHAR (32) NOT NULL UNIQUE,
+                           desc VARCHAR(255), 
                            ts TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                            user_id INTEGER,
                            private_src BOOLEAN NOT NULL,
