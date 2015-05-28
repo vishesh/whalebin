@@ -5,6 +5,8 @@
          "init.rkt")
 
 (provide create-user
+         username?
+         password?
          get-user-id
          user-valid-cred?
          create-user-session
@@ -17,13 +19,13 @@
 (define (username? a)
   (and (string? a)
        (<= 4 (string-length a) 16)
-       (string? (regexp-match #rx"^[a-zA-Z0-9_]+$" a))))
+       (list? (regexp-match #rx"^[a-zA-Z0-9_]+$" a))))
 
 ; password? : Any -> Boolean
 (define (password? p)
   (and (string? p)
-       (<= 8 (string-length p) 20)
-       (string? (regexp-match #rx"[a-zA-Z0-9_@#$%]+$" p))))
+       (<= 4 (string-length p) 20)
+       (list? (regexp-match #rx"[a-zA-Z0-9_@#$%]+$" p))))
 
 ; create-user : String String -> Void
 ; WHERE: (get-user-id username) == false

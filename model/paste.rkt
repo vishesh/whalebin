@@ -12,14 +12,26 @@
          paste-exists?
          paste-source
          paste-web-output
+         get-paste-by-name
          get-recent-pastes
          paste-output-ready?
          create-paste!
          finish-compile
+         get-paste-by-name
          paste-views-add1
-         get-user-pastes)
+         get-user-pastes
+         paste-url
+         paste-id
+         paste-title
+         paste-desc
+         paste-ts
+         paste-userid
+         paste-views
+         paste-private?)
 
 ; Name is [a-zA-Z0-9]+
+
+(define-struct paste (id url title desc ts userid views private?))
 
 ; random-name : Integer -> Name
 ; Returns a random name using random-string that has not been used by any
@@ -32,80 +44,104 @@
 
 ; get-paste-id : Name -> Maybe<Integer>
 ; Get ID of paste tuple with name
-(define (get-paste-id name)
+(define (get-paste-id url)
   (query-maybe-value
     DB-CONN
-    (format "SELECT id FROM ~a WHERE name = ?" TABLE-PASTES)
-    name))
+    (format "SELECT id FROM ~a WHERE url = ?" TABLE-PASTES)
+    url))
+
+; get-paste : Name -> Maybe<Paste>
+(define (get-paste-by-name url)
+  (define result 
+    (query-maybe-row
+      DB-CONN
+      (format "SELECT id, url, title, descr, ts, user_id, views, private FROM ~a WHERE url = ?" TABLE-PASTES)
+      url))
+  (and result
+       (apply make-paste (vector->list result))))
+
+(define (get-paste-by-id id)
+  (define result 
+    (query-maybe-row
+      DB-CONN
+      (format "SELECT id, url, title, descr, ts, user_id, views, private FROM ~a WHERE id = ?" TABLE-PASTES)
+      id))
+  (and result
+       (apply make-paste (vector->list result))))
 
 ; paste-exists? : Name -> Boolean
-(define (paste-exists? name)
-  (not (false? (get-paste-id name))))
+(define (paste-exists? url)
+  (not (false? (get-paste-id url))))
 
-; paste-source : Name -> Port
+; paste-source : Paste -> Port
 ; Source code of given paste
-(define (paste-source name)
-  (repo-open-input-file REPO-SOURCE name))
+(define (paste-source paste)
+  (repo-open-input-file REPO-SOURCE (paste-url paste)))
 
-; paste-web-output : Name -> Port
+; paste-web-output : Paste -> Port
 ; HTML output of given paste
-(define (paste-web-output name)
-  (repo-open-input-file REPO-OUTPUT name))
+(define (paste-web-output paste)
+  (repo-open-input-file REPO-OUTPUT (paste-url paste)))
 
-; get-recent-pastes : -> ListOf<Name>
+; TODO
+; get-recent-pastes : -> ListOf<Paste>
 ; Get 10 recently added pastes
 (define (get-recent-pastes)
-  (query-list
-    DB-CONN
-    (format "SELECT name FROM ~a ORDER BY ts DESC LIMIT 10" TABLE-PASTES)))
+  (define results
+    (query-rows
+      DB-CONN
+      (format "SELECT id, url, title, descr, ts, user_id, views, private FROM ~a ORDER BY ts DESC LIMIT 10" TABLE-PASTES)))
+  (map (lambda (x) (apply make-paste (vector->list x))) results))
 
-; paste-output-ready? : Name -> Boolean
+; paste-output-ready? : Paste -> Boolean
 ; WHERE: (paste-exists? name) is true
 ; Returns true if the program has compiled and is ready to be fetched
-(define (paste-output-ready? name)
+(define (paste-output-ready? paste)
   (not (query-maybe-value
          DB-CONN
          (format "SELECT paste_id FROM ~a WHERE paste_id = ?" TABLE-WORKER)
-         (get-paste-id name))))
+         (paste-id paste))))
 
 ; create-paste! : Name bytes -> Void
 ; TODO: put both queries in transaction
-(define (create-paste! name content [title ""] [description ""] [userid #f])
+(define (create-paste! url content #:title [title ""] #:desc [description ""] #:userid [userid #f] #:private [private #f])
   (query-exec
     DB-CONN
-    (format "INSERT INTO ~a (name, user_id, title, desc) VALUES (?, ?, ?, ?)"
+    (format "INSERT INTO ~a (url, user_id, title, descr, private) VALUES (?, ?, ?, ?, ?)"
             TABLE-PASTES)
-    name userid title description)
+    url userid title description private)
   (query-exec
     DB-CONN
     (format "INSERT INTO ~a (paste_id) VALUES (?)" TABLE-WORKER)
-    (get-paste-id name))
-  (repo-put! REPO-SOURCE name content)
-  (compile-source name))
+    (get-paste-id url))
+  (repo-put! REPO-SOURCE url content)
+  (compile-source url))
 
 ; finish-compile : Name -> Void
 ; Mark the paste as compiled and ready by removed it from worker queue
 ; TODO: Fails if compilation fails
-(define (finish-compile name)
+(define (finish-compile url)
   (query-exec
     DB-CONN
     (format "DELETE FROM ~a WHERE paste_id = ?" TABLE-WORKER)
-    (get-paste-id name)))
+    (get-paste-id url)))
 
 ; Name -> Void
-(define (paste-views-add1 name)
+(define (paste-views-add1 paste)
   (query-exec
     DB-CONN
     (format "UPDATE ~a SET views = views + 1 WHERE id = ?" TABLE-PASTES)
-    (get-paste-id name)))
+    (paste-id paste)))
 
 ; get-user-pastes : Integer -> ListOf<Name>
 ; Returns list of pastes by user
 (define (get-user-pastes userid)
-  (query-list
-    DB-CONN
-    (format "SELECT name FROM ~a WHERE id =? ORDER BY ts DESC" TABLE-PASTES)
-    userid))
+  (define results
+    (query-rows
+      DB-CONN
+      (format "SELECT id, url, title, descr, ts, user_id, views, private FROM ~a WHERE id = ? ORDER BY ts DESC" TABLE-PASTES)
+      userid))
+  (map (lambda (x) (apply make-paste (vector->list x))) results))
 
 ; compile-source : Name -> Void
 ; Spawns a new thread to compile whalesong program

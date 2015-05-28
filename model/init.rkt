@@ -41,15 +41,18 @@
     (query-exec DB-CONN
                 (format "CREATE TABLE ~a (
                            id INTEGER PRIMARY KEY NOT NULL AUTO_INCREMENT,
-                           name VARCHAR(16) NOT NULL UNIQUE,
-                           title VARCHAR (32) NOT NULL UNIQUE,
-                           desc VARCHAR(255), 
+                           url VARCHAR(16) NOT NULL UNIQUE,
+                           title VARCHAR(16) NOT NULL DEFAULT '',
+                           descr VARCHAR(255) NOT NULL DEFAULT '',
                            ts TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                            user_id INTEGER,
-                           private_src BOOLEAN NOT NULL,
+                           private BOOLEAN NOT NULL,
                            views INTEGER NOT NULL DEFAULT 0,
                            FOREIGN KEY (user_id) REFERENCES ~a (id)
-                         );" TABLE-PASTES TABLE-USERS)))
+                         );" TABLE-PASTES TABLE-USERS))
+    (query-exec DB-CONN
+        (format "ALTER TABLE ~a AUTO_INCREMENT = 1000;"
+                TABLE-PASTES)))
   (unless (table-exists? DB-CONN TABLE-WORKER)
     (query-exec DB-CONN
              (format "CREATE TABLE ~a (paste_id INTEGER NOT NULL);"

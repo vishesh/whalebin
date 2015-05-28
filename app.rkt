@@ -44,15 +44,16 @@
 
 ; serve-get : Request Name -> Response
 (define (serve-get req name)
-  (if (paste-exists? name)
+  (define paste (get-paste-by-name name))
+  (if paste
     (cond
-      [(paste-output-ready? name)
-       (paste-views-add1 name)
+      [(paste-output-ready? paste)
+       (paste-views-add1 paste)
        (response/full
          200 #"OK"
          (current-seconds) TEXT/HTML-MIME-TYPE
          '()
-         (list (port->bytes (paste-web-output name))))]
+         (list (port->bytes (paste-web-output paste))))]
       [else (response/message "Paste is not compiled yet! Try again in few seconds")])
     (response/message "Paste not found!")))
 
@@ -78,7 +79,7 @@
      (create-paste!
       name
       (string->bytes/utf-8 (extract-binding/single 'source bindings))
-      session-user)
+      #:userid session-user)
      (response/xexpr
       `(html
         (head (title "whalebin : upload"))
@@ -93,8 +94,8 @@
 ; serve-default : Request -> Response
 (define (serve-default req)
   (define session-user (get-session-username req))
-  (define (name->li name)
-    `(li (a ([href ,(get-paste-url name)]) ,name)))
+  (define (paste->li p)
+    `(li (a ([href ,(get-paste-url (paste-url p))]) ,(paste-url p))))
   (response/xexpr
     `(html (head (title "whalebin!"))
            (body
@@ -105,7 +106,7 @@
                      (guest-bar-xexpr)))
              (div ([style "float: left; width: 200px;"])
                   (yh4 "recent pastes")
-                  (ul ,@(map name->li (get-recent-pastes))))
+                  (ul ,@(map paste->li (get-recent-pastes))))
              (div ((style "float: left; width: 300px;"))
                   (form ([method "post"] [action "/upload"])
                         (textarea ([name "source"] [cols "80"] [rows "30"]))
@@ -179,15 +180,15 @@
 
 (define (serve-profile req username)
   (define userid (get-user-id username))
-  (define (name->li name)
-    `(li (a ([href ,(get-paste-url name)]) ,name)))
+  (define (paste->li p)
+    `(li (a ([href ,(get-paste-url (paste-url p))]) ,(paste-url p))))
   (response/xexpr
     `(html (head (title "whalebin!"))
            (body
              (h2 "whalebin")
              (h5 "profile: " ,username
              (div 
-               (ul ,@(map name->li (get-user-pastes userid)))))))))
+               (ul ,@(map paste->li (get-user-pastes userid)))))))))
 
 ; get-paste-url : Name -> String
 (define (get-paste-url name)
