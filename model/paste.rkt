@@ -17,7 +17,6 @@
          paste-output-ready?
          create-paste!
          finish-compile
-         get-paste-by-name
          paste-views-add1
          get-user-pastes
          paste-url
@@ -31,7 +30,7 @@
 
 ; Name is [a-zA-Z0-9]+
 
-(define-struct paste (id url title desc ts userid views private?))
+(define-struct paste (id url title desc ts userid views private?) #:transparent)
 
 ; random-name : Integer -> Name
 ; Returns a random name using random-string that has not been used by any
@@ -90,7 +89,7 @@
   (define results
     (query-rows
       DB-CONN
-      (format "SELECT id, url, title, descr, ts, user_id, views, private FROM ~a ORDER BY ts DESC LIMIT 10" TABLE-PASTES)))
+      (format "SELECT id, url, title, descr, ts, user_id, views, private FROM ~a WHERE private = 0 ORDER BY ts DESC LIMIT 10" TABLE-PASTES)))
   (map (lambda (x) (apply make-paste (vector->list x))) results))
 
 ; paste-output-ready? : Paste -> Boolean
@@ -109,7 +108,7 @@
     DB-CONN
     (format "INSERT INTO ~a (url, user_id, title, descr, private) VALUES (?, ?, ?, ?, ?)"
             TABLE-PASTES)
-    url userid title description private)
+    url (false->sql-null userid) title description (if private 1 0))
   (query-exec
     DB-CONN
     (format "INSERT INTO ~a (paste_id) VALUES (?)" TABLE-WORKER)
@@ -124,7 +123,7 @@
   (query-exec
     DB-CONN
     (format "DELETE FROM ~a WHERE paste_id = ?" TABLE-WORKER)
-    (get-paste-id url)))
+    (get-paste-id url)))
 
 ; Name -> Void
 (define (paste-views-add1 paste)

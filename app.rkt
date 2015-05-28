@@ -42,10 +42,16 @@
 (define (logged-in? req)
   (string? (get-session-username req)))
 
+(define (can-access-paste? paste username)
+  (cond
+    [(or (false? (paste-private? paste)) (equal? (paste-private? paste) 0)) #t]
+    [(false? username) #f]
+    [else (equal? (get-user-id username) (paste-userid paste))]))
+
 ; serve-get : Request Name -> Response
 (define (serve-get req name)
   (define paste (get-paste-by-name name))
-  (if paste
+  (if (and paste (can-access-paste? paste (get-session-username req)))
     (cond
       [(paste-output-ready? paste)
        (paste-views-add1 paste)
