@@ -161,13 +161,14 @@
               "register"
               #f
               `(div
-                 (h2 "whalebin : signup")
+                 (h3 "register")
                  (div
                    (form ([method "post"] [action ,k-url])
-                         "Username"
-                         (input ([type "text"] [name "username"]))
-                         "Password"
+                         (label "Username ")
+                         (input ([type "text"] [name "username"])) (br)
+                         (label "Password ")
                          (input ([type "password"] [name "password"]))
+                         (br) (br)
                          (input ([type "submit"]))))))))))
     (cons (extract-binding/single 'username (request-bindings req))
           (extract-binding/single 'password (request-bindings req))))
@@ -191,13 +192,14 @@
               "signin"
               #f
               `(div
-                 (h2 "whalebin : signin")
+                 (h3 "sign-in")
                  (div
                    (form ([method "post"] [action ,k-url])
-                         "Username"
-                         (input ([type "text"] [name "username"]))
-                         "Password"
+                         (label "Username ")
+                         (input ([type "text"] [name "username"])) (br)
+                         (label "Password ")
                          (input ([type "password"] [name "password"]))
+                         (br) (br)
                          (input ([type "submit"]))))))))))
     (cons (extract-binding/single 'username (request-bindings req))
           (extract-binding/single 'password (request-bindings req))))

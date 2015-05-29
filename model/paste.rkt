@@ -1,7 +1,9 @@
 #lang racket
 
 (require db
+         xml
          whalesong/whalesong-helpers 
+         whalesong/parameters
          "../repo.rkt"
          "../config.rkt"
          "../utils.rkt"
@@ -142,13 +144,27 @@
       userid))
   (map (lambda (x) (apply make-paste (vector->list x))) results))
 
+; check-error-report : Name String -> Void
+(define (check-error-report name r)
+  (when (regexp-match "ERROR:" r)
+    (repo-put! REPO-OUTPUT name 
+               (string->bytes/utf-8 
+                 (xexpr->string `(html
+                                   (head (title "whalesong : error"))
+                                   (body
+                                     (h2 ,(format "compile error (~a)" name))
+                                     (pre ,r))))))))
+
 ; compile-source : Name -> Void
 ; Spawns a new thread to compile whalesong program
 ; TODO: call finish-compile only if build was successful
 (define (compile-source name)
   (thread
     (λ ()
+      (define s (open-output-string))
       (parameterize ([current-output-dir
-                      (path-only (repo-filepath REPO-OUTPUT name))])
-        (build-standalone-html (repo-filepath REPO-SOURCE name)))
+                      (path-only (repo-filepath REPO-OUTPUT name))]
+                     [current-report-port s])
+        (build-standalone-html (repo-filepath REPO-SOURCE name))
+        (check-error-report name (get-output-string s)))
       (finish-compile name))))

@@ -26,7 +26,7 @@
   (define basedir (path-only (repo-filepath repo name)))
   (unless (directory-exists? basedir)
     (make-directory basedir))
-  (open-output-file (repo-filepath repo name)))
+  (open-output-file (repo-filepath repo name) #:exists 'truncate))
 
 ; repo-put! : Repository Name bytes -> Void
 (define (repo-put! repo name content)
