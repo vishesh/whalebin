@@ -140,7 +140,7 @@
   (define results
     (query-rows
       DB-CONN
-      (format "SELECT id, url, title, descr, ts, user_id, views, private FROM ~a WHERE id = ? ORDER BY ts DESC" TABLE-PASTES)
+      (format "SELECT id, url, title, descr, ts, user_id, views, private FROM ~a WHERE user_id = ? ORDER BY ts DESC" TABLE-PASTES)
       userid))
   (map (lambda (x) (apply make-paste (vector->list x))) results))
 

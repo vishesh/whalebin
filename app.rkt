@@ -49,6 +49,7 @@
     [("api" "upload") #:method "post" serve-api-upload]
     [("upload") #:method "post" serve-upload]
     [("get" (string-arg)) #:method "get" serve-get]
+    [("get-src" (string-arg)) #:method "get" serve-get-src]
     [("auth" "signin") #:method "get" serve-signin]
     [("auth" "signup") #:method "get" serve-signup]
     [("auth" "signoff") #:method "get" serve-signoff]
@@ -75,8 +76,7 @@
 ; serve-get : Request Name -> Response
 (define (serve-get req name)
   (define paste (get-paste-by-name name))
-  (define session-user (get-session-username req))
-  (if (and paste (can-access-paste? paste session-user))
+  (if paste
     (cond
       [(paste-output-ready? paste)
        (paste-views-add1 paste)
@@ -85,8 +85,22 @@
          (current-seconds) TEXT/HTML-MIME-TYPE
          '()
          (list (port->bytes (paste-web-output paste))))]
-      [else (response/message session-user
+      [else (response/message (get-session-username req)
                               "Paste is not compiled yet! Try again in few seconds")])
+    (response/message session-user "Paste not found!")))
+
+; serve-get-src : Request Name -> Response
+(define (serve-get-src req name)
+  (define paste (get-paste-by-name name))
+  (define session-user (get-session-username req))
+  (if (and paste (can-access-paste? paste session-user))
+    (response/xexpr
+      (page-template
+        name
+        session-user
+        `(div
+           (h3 ,name)
+           (pre (paste-source ,(port->string (paste-source paste)))))))
     (response/message session-user "Paste not found!")))
 
 ; serve-api-upload : Request -> Response
@@ -111,6 +125,8 @@
      (create-paste!
       name
       (string->bytes/utf-8 (extract-binding/single 'source bindings))
+      #:private (and (exists-binding? 'private bindings)
+                     (extract-binding/single 'private bindings))
       #:userid session-userid)
      (response/xexpr
        (page-template
@@ -139,10 +155,7 @@
                        (textarea ([cols "100"] [rows "30"] [name "source"]))
                        (br) (br)
                        (input ([type "checkbox"] [name "private"]))
-                       (label "Private Paste")
-                       (br) (br)
-                       (input ([type "checkbox"] [name "publish"]))
-                       (label "Private Source")
+                       (label "Private source")
                        (br) (br)
                        (input ([type "submit"] [class "submit-button"]))))
             (div ([id "recent-pastes-column"])
