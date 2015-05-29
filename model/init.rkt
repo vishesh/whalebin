@@ -44,6 +44,7 @@
                            url VARCHAR(16) NOT NULL UNIQUE,
                            title VARCHAR(20) NOT NULL DEFAULT '',
                            ts TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                           compiler_error BOOLEAN,
                            user_id INTEGER,
                            private BOOLEAN NOT NULL,
                            views INTEGER NOT NULL DEFAULT 0,
