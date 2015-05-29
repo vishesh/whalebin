@@ -45,6 +45,7 @@
                   [href "https://maxcdn.bootstrapcdn.com/bootstrap/3.3.4/css/bootstrap-theme.min.css"])) 
            (script ([src "https://ajax.googleapis.com/ajax/libs/jquery/1.11.2/jquery.min.js"]))
            (script ([src "https://maxcdn.bootstrapcdn.com/bootstrap/3.3.4/js/bootstrap.min.js"]))
+           (script ([src "/main.js"]))
            (link ([rel "stylesheet"] [type "text/css"] [href "/main.css"])))
          (body
            ,(header-template user)
@@ -196,7 +197,7 @@
                  (form ([action "/upload"] [method "post"] [id "paste-form"])
                        (input ([type "text"] [name "title"] [class "form-control"] [placeholder "Title"]))
                        (br)
-                       (textarea ([cols "80"] [rows "25"] [name "source"] [class "form-control"]))
+                       (textarea ([style "font-family: monosapce;"] [cols "80"] [rows "25"] [name "source"] [class "form-control"]))
                        (br)
                        (label (input ([type "checkbox"] [name "private"])) "Private Source?")
                        nbsp nbsp nbsp
