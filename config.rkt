@@ -18,3 +18,4 @@
 (define SESSION-COOKIE-NAME "session") 
 (define SESSION-COOKIE-SALT #"abcdefgijklmonp")
 
+(define STATIC-FILES-DIR "/home/vishesh/racket/whalebin/static")

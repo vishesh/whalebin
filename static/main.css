@@ -1,0 +1,55 @@
+
+html, body {
+  margin: 0 auto;
+  padding: 0;
+  width: 100%;
+}
+
+#menu-container {
+  margin: 0;
+  padding: 0;
+}
+
+#menu {
+  margin: 0;
+  padding: 0;
+  background-color: #333;
+  overflow: hidden;
+  list-style-type: none;
+  border-bottom: #222 solid;
+}
+
+#menu > li {
+  float: left;
+}
+
+#menu li > a {
+  margin: 0;
+  text-decoration: none;
+  display: block;
+  padding: 0.4em 0.6em 0.4em 0.6em;
+  color: #fff;
+}
+
+#menu li > a:hover {
+  text-decoration: none;
+  background-color: #000;
+}
+
+#page {
+  clear: both;
+  margin: 1.2em 1.2em 1.2em 1.2em;
+  padding: 0;
+}
+
+#paste-form {
+}
+
+#paste-column {
+  width: 0 auto;
+}
+
+.submit-button {
+  padding: 0.8em 1.6em 0.8em 1.6em;
+  font-size: 1.2em;
+}

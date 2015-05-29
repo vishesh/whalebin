@@ -13,11 +13,35 @@
 
 ; TODO: Put constants and messages above
 
+(define (profile-url user)
+  (string-append "/profile/" user))
+
+(define (header-template user)
+  `(div ([id "menu-container"])
+        (ul ([id "menu"])
+            (li (a ([href "#"]) "Whalebin"))
+            (li (a ([href "/"]) "New"))
+            (li (a ([href "/explore"]) "Explore"))
+            ,@(if user
+               (list 
+                 `(li (a ([href ,(profile-url user)]) ,user))
+                 `(li (a ([href "/auth/signoff"]) "Sign Off")))
+               (list `(li (a ([href "/auth/signin"]) "Sign In"))
+                     `(li (a ([href "/auth/signup"]) "Register")))))))
+
+(define (page-template title user body)
+  `(html (head
+           (title ,(string-append "whalebin " title))
+           (meta ([charset "utf-8"]))
+           (link ([rel "stylesheet"] [type "text/css"] [href "/main.css"])))
+         (body
+           ,(header-template user)
+           ,body)))
+
 ; response/message : String -> Response
-(define-syntax-rule (response/message msg)
+(define-syntax-rule (response/message user msg)
   (response/xexpr
-    `(html (head (title "whalebin : message"))
-           (body (p ,msg)))))
+    (page-template "message" user `(body (p ,msg)))))
 
 ; do-dispatch : URL -> 
 (define-values (do-dispatch url)
@@ -29,7 +53,7 @@
     [("auth" "signup") #:method "get" serve-signup]
     [("auth" "signoff") #:method "get" serve-signoff]
     [("profile" (string-arg)) #:method "get" serve-profile]
-    [else serve-default]))
+    [("") serve-default]))
 
 (define (request-session-token req)
   (request-id-cookie SESSION-COOKIE-NAME SESSION-COOKIE-SALT req))
@@ -51,7 +75,8 @@
 ; serve-get : Request Name -> Response
 (define (serve-get req name)
   (define paste (get-paste-by-name name))
-  (if (and paste (can-access-paste? paste (get-session-username req)))
+  (define session-user (get-session-username req))
+  (if (and paste (can-access-paste? paste session-user))
     (cond
       [(paste-output-ready? paste)
        (paste-views-add1 paste)
@@ -60,8 +85,9 @@
          (current-seconds) TEXT/HTML-MIME-TYPE
          '()
          (list (port->bytes (paste-web-output paste))))]
-      [else (response/message "Paste is not compiled yet! Try again in few seconds")])
-    (response/message "Paste not found!")))
+      [else (response/message session-user
+                              "Paste is not compiled yet! Try again in few seconds")])
+    (response/message session-user "Paste not found!")))
 
 ; serve-api-upload : Request -> Response
 (define (serve-api-upload req)
@@ -87,15 +113,16 @@
       (string->bytes/utf-8 (extract-binding/single 'source bindings))
       #:userid session-user)
      (response/xexpr
-      `(html
-        (head (title "whalebin : upload"))
-        (body
-         (h2 "source uploaded")
-         (p ,(string-append
-              "Program successfully uploaded. Compilation can take "
-              "few seconds to complete. ")
-            (a ([href ,(get-paste-url name)]) ,(get-paste-url name))))))]
-    [else (response/message "Invalid params passed")]))
+       (page-template
+         "upload"
+         session-user
+         `(div
+            (h2 "source uploaded")
+            (p ,(string-append
+                  "Program successfully uploaded. Compilation can take "
+                  "few seconds to complete. ")
+               (a ([href ,(get-paste-url name)]) ,(get-paste-url name))))))]
+    [else (response/message session-user "Invalid params passed")]))
 
 ; serve-default : Request -> Response
 (define (serve-default req)
@@ -103,20 +130,21 @@
   (define (paste->li p)
     `(li (a ([href ,(get-paste-url (paste-url p))]) ,(paste-url p))))
   (response/xexpr
-    `(html (head (title "whalebin!"))
-           (body
-             (h2 "whalebin")
-             (div ([style "margin-bottom: 1em; font-size: 80%; font-weight: bold;"])
-                  ,(if session-user
-                     (user-bar-xexpr session-user)
-                     (guest-bar-xexpr)))
-             (div ([style "float: left; width: 200px;"])
-                  (yh4 "recent pastes")
-                  (ul ,@(map paste->li (get-recent-pastes))))
-             (div ((style "float: left; width: 300px;"))
-                  (form ([method "post"] [action "/upload"])
-                        (textarea ([name "source"] [cols "80"] [rows "30"]))
-                        (input ([type "submit"] [value "Upload"]))))))))
+    (page-template
+      ""
+      session-user
+      `(div ([id "page"])
+            (div ([id "paste-column"])
+                 (form ([action "/upload"] [method "post"] [id "paste-form"])
+                       (textarea ([cols "100"] [rows "30"]))
+                       (br) (br)
+                       (input ([type "checkbox"] [name "private"]))
+                       (label "Private Paste")
+                       (br) (br)
+                       (input ([type "checkbox"] [name "publish"]))
+                       (label "Private Source")
+                       (br) (br)
+                       (input ([type "submit"] [class "submit-button"]))))))))
 
 ; serve-signup : Request -> Response
 (define (serve-signup req)
@@ -125,20 +153,23 @@
       (send/suspend
         (λ (k-url)
           (response/xexpr 
-            `(html (head (title "whalebing : signup"))
-                   (body
-                     (h2 "whalebin : signup")
-                     (div
-                       (form ([method "post"] [action ,k-url])
-                             "Username"
-                             (input ([type "text"] [name "username"]))
-                             "Password"
-                             (input ([type "password"] [name "password"]))
-                             (input ([type "submit"]))))))))))
+            (page-template
+              "register"
+              #f
+              `(div
+                 (h2 "whalebin : signup")
+                 (div
+                   (form ([method "post"] [action ,k-url])
+                         "Username"
+                         (input ([type "text"] [name "username"]))
+                         "Password"
+                         (input ([type "password"] [name "password"]))
+                         (input ([type "submit"] [class "submit-button"]))))))))))
     (cons (extract-binding/single 'username (request-bindings req))
           (extract-binding/single 'password (request-bindings req))))
 
   (response/message
+    #f
     (match (get-creds)
       [(cons username password)
        (cond
@@ -152,16 +183,18 @@
       (send/suspend
         (λ (k-url)
           (response/xexpr 
-            `(html (head (title "whalebing : signin"))
-                   (body
-                     (h2 "whalebin : signin")
-                     (div
-                       (form ([method "post"] [action ,k-url])
-                             "Username"
-                             (input ([type "text"] [name "username"]))
-                             "Password"
-                             (input ([type "password"] [name "password"]))
-                             (input ([type "submit"]))))))))))
+            (page-template
+              "signin"
+              #f
+              `(div
+                 (h2 "whalebin : signin")
+                 (div
+                   (form ([method "post"] [action ,k-url])
+                         "Username"
+                         (input ([type "text"] [name "username"]))
+                         "Password"
+                         (input ([type "password"] [name "password"]))
+                         (input ([type "submit"]))))))))))
     (cons (extract-binding/single 'username (request-bindings req))
           (extract-binding/single 'password (request-bindings req))))
 
@@ -175,7 +208,7 @@
                                        #:path "/"))
         (redirect-to "/"
                      #:headers (map cookie->header (list cookie)))]
-       [else (response/message "invalid username/password.")])]))
+       [else (response/message #f "invalid username/password.")])]))
 
 (define (serve-signoff req)
   (destroy-session (request-session-token req))
@@ -189,12 +222,13 @@
   (define (paste->li p)
     `(li (a ([href ,(get-paste-url (paste-url p))]) ,(paste-url p))))
   (response/xexpr
-    `(html (head (title "whalebin!"))
-           (body
-             (h2 "whalebin")
-             (h5 "profile: " ,username
-             (div 
-               (ul ,@(map paste->li (get-user-pastes userid)))))))))
+    (page-template
+      (string-append "profile - " username)
+      (get-session-username req)
+      `(div
+        (h5 "profile: " ,username
+            (div 
+              (ul ,@(map paste->li (get-user-pastes userid)))))))))
 
 ; get-paste-url : Name -> String
 (define (get-paste-url name)
@@ -224,6 +258,8 @@
                  #:servlet-path "/"
                  #:servlet-regexp #rx".*"
                  #:servlet-current-directory "."
+                 #:extra-files-paths (list
+                                       (string->path STATIC-FILES-DIR))
                  #:launch-browser? false))
 
 ; run
