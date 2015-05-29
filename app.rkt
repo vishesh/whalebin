@@ -66,7 +66,8 @@
            [(number? (paste-userid paste)) ; fixme
             (define username (get-username-by-id (paste-userid paste)))
             (list "[" `(a ([href ,(profile-url username)]) ,username) "]")]
-           [else '()]))))
+           [else '()])
+       ,(format "[hits ~a]" (paste-views paste)))))
 
 ; response/message : String -> Response
 (define-syntax-rule (response/message user msg)
@@ -84,6 +85,7 @@
     [("auth" "signup") #:method "get" serve-signup]
     [("auth" "signoff") #:method "get" serve-signoff]
     [("profile" (string-arg)) #:method "get" serve-profile]
+    [("explore") #:method "get" serve-explore]
     [("") serve-default]))
 
 (define (request-session-token req)
@@ -123,20 +125,25 @@
 (define (serve-get-src req name)
   (define paste (get-paste-by-name name))
   (define session-user (get-session-username req))
+  (define username (if (number? (paste-userid paste)) ;fixme
+                     (get-username-by-id (paste-userid paste))
+                     #f))
   (if (and paste (can-access-paste? paste session-user))
     (response/xexpr
       (page-template
         name
         session-user
-        `(div
-           (h3 (a ([href ,(get-paste-url (paste-url paste))]) ,(paste-url paste)) nbsp nbsp ,(paste-title paste))
-           ,(cond
-              [(number? (paste-userid paste))
-               (define username (get-username-by-id (paste-userid paste)))
-              `(h4 "by "
-                    (a ([href ,(profile-url username)]) ,username))]
-              [else ""])
-           (p (pre (paste-source ,(port->string (paste-source paste))))))))
+        `(div ([class "row"])
+           (div ([class "col-md-2"])
+                (div ([style "font-size: 120%"])
+                     (a ([href ,(get-paste-url (paste-url paste))]) ,(paste-url paste)) (br)
+                     ,(paste-title paste) (br) (br)
+                     "Viewed " ,(number->string (paste-views paste)) " times." (br)
+                     ,@(if username
+                         (list "Uploaded by " `(a ([href ,(profile-url username)]) ,username))
+                         '())))
+           (div ([class "col-md-10"])
+                (pre (paste-source ,(port->string (paste-source paste))))))))
     (response/message session-user "Paste not found!")))
 
 ; serve-api-upload : Request -> Response
@@ -197,7 +204,7 @@
             (div ([class "col-md-3"])
                  (h4 "recent pastes")
                  (ul ([class "list-unstyled"])
-                   ,@(map paste->xexpr (get-recent-pastes))))))))
+                   ,@(map paste->xexpr (get-recent-pastes 50))))))))
 
 ; serve-signup : Request -> Response
 (define (serve-signup req)
@@ -285,6 +292,23 @@
         (div 
           (ul ([class "list-unstyled"])
               ,@(map paste->xexpr (get-user-pastes userid))))))))
+
+(define (serve-explore req)
+  (response/xexpr
+    (page-template
+      (string-append "explore")
+      (get-session-username req)
+      `(div
+         (h2 "explore")
+         (div ([class "row"])
+              (div ([class "col-md-4"])
+                   (h3 "most viewed pastes")
+                   (ul ([class "list-unstyled"])
+                    ,@(map paste->xexpr (get-most-viewed-pastes 50))))
+              (div ([class "col-md-4"])
+                   (h3 "recent pastes")
+                   (ul ([class "list-unstyled"])
+                       ,@(map paste->xexpr (get-recent-pastes 50)))))))))
 
 ; get-paste-url : Name -> String
 (define (get-paste-url name)

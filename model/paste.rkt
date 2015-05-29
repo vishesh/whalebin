@@ -16,6 +16,7 @@
          paste-web-output
          get-paste-by-name
          get-recent-pastes
+         get-most-viewed-pastes
          paste-output-ready?
          create-paste!
          finish-compile
@@ -84,13 +85,22 @@
   (repo-open-input-file REPO-OUTPUT (paste-url paste)))
 
 ; TODO
-; get-recent-pastes : -> ListOf<Paste>
-; Get 10 recently added pastes
-(define (get-recent-pastes)
+; get-recent-pastes : Integer -> ListOf<Paste>
+; Get n recently added paste
+(define (get-recent-pastes n)
   (define results
     (query-rows
       DB-CONN
-      (format "SELECT id, url, title, ts, user_id, views, private FROM ~a ORDER BY ts DESC LIMIT 10" TABLE-PASTES)))
+      (format "SELECT id, url, title, ts, user_id, views, private FROM ~a ORDER BY ts DESC LIMIT ?" TABLE-PASTES) n))
+  (map (lambda (x) (apply make-paste (vector->list x))) results))
+
+; get-recent-pastes : Integer -> ListOf<Paste>
+; Get n most viewed pastes
+(define (get-most-viewed-pastes n)
+  (define results
+    (query-rows
+      DB-CONN
+      (format "SELECT id, url, title, ts, user_id, views, private FROM ~a ORDER BY views DESC LIMIT ?" TABLE-PASTES) n))
   (map (lambda (x) (apply make-paste (vector->list x))) results))
 
 ; paste-output-ready? : Paste -> Boolean
