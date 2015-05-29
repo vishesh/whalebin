@@ -19,7 +19,7 @@
 (define (header-template user)
   `(div ([id "menu-container"])
         (ul ([id "menu"])
-            (li (a ([href "#"]) "Whalebin"))
+            (li (a ([href "/"]) "Whalebin"))
             (li (a ([href "/"]) "New"))
             (li (a ([href "/explore"]) "Explore"))
             ,@(if user
@@ -37,6 +37,23 @@
          (body
            ,(header-template user)
            ,body)))
+
+(define (paste->xexpr paste)
+  `(li
+     (a ([href ,(get-paste-url (paste-url paste))]) ,(paste-url paste))
+     nbsp
+     (paste-title ,(paste-title paste))
+     (br)
+     ,@(if (paste-private? paste)
+         (list "["
+               `(a ([href ,(get-paste-source-url (paste-url paste))]) "src")
+               "]")
+         '())
+     ,@(cond
+         [(number? (paste-userid paste)) ; fixme
+          (define username (get-username-by-id (paste-userid paste)))
+          (list "[" `(a ([href ,(profile-url username)]) ,username) "]")]
+         [else '()])))
 
 ; response/message : String -> Response
 (define-syntax-rule (response/message user msg)
@@ -127,6 +144,7 @@
       (string->bytes/utf-8 (extract-binding/single 'source bindings))
       #:private (and (exists-binding? 'private bindings)
                      (extract-binding/single 'private bindings))
+      #:title (extract-binding/single 'title bindings)
       #:userid session-userid)
      (response/xexpr
        (page-template
@@ -143,8 +161,6 @@
 ; serve-default : Request -> Response
 (define (serve-default req)
   (define session-user (get-session-username req))
-  (define (paste->li p)
-    `(li (a ([href ,(get-paste-url (paste-url p))]) ,(paste-url p))))
   (response/xexpr
     (page-template
       ""
@@ -152,6 +168,9 @@
       `(div ([id "page"])
             (div ([id "paste-column"])
                  (form ([action "/upload"] [method "post"] [id "paste-form"])
+                       (label "Title") nbsp nbsp
+                       (input ([type "text"] [name "title"] [size "40"]))
+                       (br) (br)
                        (textarea ([cols "100"] [rows "30"] [name "source"]))
                        (br) (br)
                        (input ([type "checkbox"] [name "private"]))
@@ -161,7 +180,7 @@
             (div ([id "recent-pastes-column"])
                  (h4 "recent pastes")
                  (ul
-                   ,@(map paste->li (get-recent-pastes))))))))
+                   ,@(map paste->xexpr (get-recent-pastes))))))))
 
 ; serve-signup : Request -> Response
 (define (serve-signup req)
@@ -238,8 +257,6 @@
 
 (define (serve-profile req username)
   (define userid (get-user-id username))
-  (define (paste->li p)
-    `(li (a ([href ,(get-paste-url (paste-url p))]) ,(paste-url p))))
   (response/xexpr
     (page-template
       (string-append "profile - " username)
@@ -247,11 +264,14 @@
       `(div
         (h5 "profile: " ,username
             (div 
-              (ul ,@(map paste->li (get-user-pastes userid)))))))))
+              (ul ,@(map paste->xexpr (get-user-pastes userid)))))))))
 
 ; get-paste-url : Name -> String
 (define (get-paste-url name)
   (string-append SERVER-ROOT "/get/" name))
+
+(define (get-paste-source-url name)
+  (string-append SERVER-ROOT "/get-src/" name))
 
 (define (user-bar-xexpr user)
   `(div

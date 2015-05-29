@@ -8,6 +8,7 @@
          username?
          password?
          get-user-id
+         get-username-by-id
          user-valid-cred?
          create-user-session
          destroy-session
@@ -42,6 +43,12 @@
     DB-CONN
     (format "SELECT id FROM ~a WHERE username = ?;" TABLE-USERS)
     username))
+
+(define (get-username-by-id id)
+  (query-maybe-value
+    DB-CONN
+    (format "SELECT username FROM ~a WHERE id = ?;" TABLE-USERS)
+    id))
 
 ; String String -> Maybe<Integer>
 ; returns true if given credentials for user are valid

@@ -24,7 +24,6 @@
          paste-url
          paste-id
          paste-title
-         paste-desc
          paste-ts
          paste-userid
          paste-views
@@ -32,7 +31,7 @@
 
 ; Name is [a-zA-Z0-9]+
 
-(define-struct paste (id url title desc ts userid views private?) #:transparent)
+(define-struct paste (id url title ts userid views private?) #:transparent)
 
 ; random-name : Integer -> Name
 ; Returns a random name using random-string that has not been used by any
@@ -56,7 +55,7 @@
   (define result 
     (query-maybe-row
       DB-CONN
-      (format "SELECT id, url, title, descr, ts, user_id, views, private FROM ~a WHERE url = ?" TABLE-PASTES)
+      (format "SELECT id, url, title, ts, user_id, views, private FROM ~a WHERE url = ?" TABLE-PASTES)
       url))
   (and result
        (apply make-paste (vector->list result))))
@@ -65,7 +64,7 @@
   (define result 
     (query-maybe-row
       DB-CONN
-      (format "SELECT id, url, title, descr, ts, user_id, views, private FROM ~a WHERE id = ?" TABLE-PASTES)
+      (format "SELECT id, url, title, ts, user_id, views, private FROM ~a WHERE id = ?" TABLE-PASTES)
       id))
   (and result
        (apply make-paste (vector->list result))))
@@ -91,7 +90,7 @@
   (define results
     (query-rows
       DB-CONN
-      (format "SELECT id, url, title, descr, ts, user_id, views, private FROM ~a WHERE private = 0 ORDER BY ts DESC LIMIT 10" TABLE-PASTES)))
+      (format "SELECT id, url, title, ts, user_id, views, private FROM ~a ORDER BY ts DESC LIMIT 10" TABLE-PASTES)))
   (map (lambda (x) (apply make-paste (vector->list x))) results))
 
 ; paste-output-ready? : Paste -> Boolean
@@ -105,12 +104,12 @@
 
 ; create-paste! : Name bytes -> Void
 ; TODO: put both queries in transaction
-(define (create-paste! url content #:title [title ""] #:desc [description ""] #:userid [userid #f] #:private [private #f])
+(define (create-paste! url content #:title [title ""] #:userid [userid #f] #:private [private #f])
   (query-exec
     DB-CONN
-    (format "INSERT INTO ~a (url, user_id, title, descr, private) VALUES (?, ?, ?, ?, ?)"
+    (format "INSERT INTO ~a (url, user_id, title, private) VALUES (?, ?, ?, ?)"
             TABLE-PASTES)
-    url (false->sql-null userid) title description (if private 1 0))
+    url (false->sql-null userid) title (if private 1 0))
   (query-exec
     DB-CONN
     (format "INSERT INTO ~a (paste_id) VALUES (?)" TABLE-WORKER)
@@ -140,7 +139,7 @@
   (define results
     (query-rows
       DB-CONN
-      (format "SELECT id, url, title, descr, ts, user_id, views, private FROM ~a WHERE user_id = ? ORDER BY ts DESC" TABLE-PASTES)
+      (format "SELECT id, url, title, ts, user_id, views, private FROM ~a WHERE user_id = ? ORDER BY ts DESC" TABLE-PASTES)
       userid))
   (map (lambda (x) (apply make-paste (vector->list x))) results))
 
