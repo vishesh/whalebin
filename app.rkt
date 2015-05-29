@@ -17,43 +17,56 @@
   (string-append "/profile/" user))
 
 (define (header-template user)
-  `(div ([id "menu-container"])
-        (ul ([id "menu"])
-            (li (a ([href "/"]) "Whalebin"))
-            (li (a ([href "/"]) "New"))
-            (li (a ([href "/explore"]) "Explore"))
-            ,@(if user
-               (list 
-                 `(li (a ([href ,(profile-url user)]) ,user))
-                 `(li (a ([href "/auth/signoff"]) "Sign Off")))
-               (list `(li (a ([href "/auth/signin"]) "Sign In"))
-                     `(li (a ([href "/auth/signup"]) "Register")))))))
+  `(nav ([class "navbar navbar-inverse navbar-fixed-top"])
+        (div ([class "container"])
+             (div ([class "navbar-header"])
+                  (a ([class "navbar-brand" href="#"]) "Whalebin"))
+             (div ([id "navbar"])
+                  (ul ([class "nav navbar-nav"])
+                      (li (a ([href "/"]) "New"))
+                      (li (a ([href "/explore"]) "Explore")))
+                  (ul ([class "nav navbar-nav navbar-right"])
+                      ,@(if user
+                          (list 
+                            `(li (a ([href ,(profile-url user)]) ,user))
+                            `(li (a ([href "/auth/signoff"]) "Sign Off")))
+                          (list `(li (a ([href "/auth/signin"]) "Sign In"))
+                                `(li (a ([href "/auth/signup"]) "Register")))))))))
 
 (define (page-template title user body)
   `(html (head
            (title ,(string-append "whalebin " title))
            (meta ([charset "utf-8"]))
+           (link ([rel "stylesheet"]
+                  [type "text/css"]
+                  [href "https://maxcdn.bootstrapcdn.com/bootstrap/3.3.4/css/bootstrap.min.css"])) 
+           (link ([rel "stylesheet"]
+                  [type "text/css"]
+                  [href "https://maxcdn.bootstrapcdn.com/bootstrap/3.3.4/css/bootstrap-theme.min.css"])) 
+           (script ([src "https://ajax.googleapis.com/ajax/libs/jquery/1.11.2/jquery.min.js"]))
+           (script ([src "https://maxcdn.bootstrapcdn.com/bootstrap/3.3.4/js/bootstrap.min.js"]))
            (link ([rel "stylesheet"] [type "text/css"] [href "/main.css"])))
          (body
            ,(header-template user)
-           ,body)))
+           (div ([class "container"]) ,body))))
 
 (define (paste->xexpr paste)
-  `(li
-     (a ([href ,(get-paste-url (paste-url paste))]) ,(paste-url paste))
-     nbsp
-     (paste-title ,(paste-title paste))
-     (br)
-     ,@(if (paste-private? paste)
-         (list "["
-               `(a ([href ,(get-paste-source-url (paste-url paste))]) "src")
-               "]")
-         '())
-     ,@(cond
-         [(number? (paste-userid paste)) ; fixme
-          (define username (get-username-by-id (paste-userid paste)))
-          (list "[" `(a ([href ,(profile-url username)]) ,username) "]")]
-         [else '()])))
+  `(li ([class "paste-item"])
+     (div ([class "paste-row-1"])
+       (a ([href ,(get-paste-url (paste-url paste))]) ,(paste-url paste))
+       nbsp
+       (paste-title ,(paste-title paste)))
+     (div ([class "paste-row-2"])
+       ,@(if (paste-private? paste)
+           (list "["
+                 `(a ([href ,(get-paste-source-url (paste-url paste))]) "src")
+                 "]")
+           '())
+       ,@(cond
+           [(number? (paste-userid paste)) ; fixme
+            (define username (get-username-by-id (paste-userid paste)))
+            (list "[" `(a ([href ,(profile-url username)]) ,username) "]")]
+           [else '()]))))
 
 ; response/message : String -> Response
 (define-syntax-rule (response/message user msg)
@@ -116,8 +129,14 @@
         name
         session-user
         `(div
-           (h3 ,name)
-           (pre (paste-source ,(port->string (paste-source paste)))))))
+           (h3 (a ([href ,(get-paste-url (paste-url paste))]) ,(paste-url paste)) nbsp nbsp ,(paste-title paste))
+           ,(cond
+              [(number? (paste-userid paste))
+               (define username (get-username-by-id (paste-userid paste)))
+              `(h4 "by "
+                    (a ([href ,(profile-url username)]) ,username))]
+              [else ""])
+           (p (pre (paste-source ,(port->string (paste-source paste))))))))
     (response/message session-user "Paste not found!")))
 
 ; serve-api-upload : Request -> Response
@@ -165,21 +184,19 @@
     (page-template
       ""
       session-user
-      `(div ([id "page"])
-            (div ([id "paste-column"])
+      `(div ([class "row"])
+            (div ([class "col-md-9"])
                  (form ([action "/upload"] [method "post"] [id "paste-form"])
-                       (label "Title") nbsp nbsp
-                       (input ([type "text"] [name "title"] [size "40"]))
-                       (br) (br)
-                       (textarea ([cols "100"] [rows "30"] [name "source"]))
-                       (br) (br)
-                       (input ([type "checkbox"] [name "private"]))
-                       (label "Private source")
-                       (br) (br)
-                       (input ([type "submit"] [class "submit-button"]))))
-            (div ([id "recent-pastes-column"])
+                       (input ([type "text"] [name "title"] [class "form-control"] [placeholder "Title"]))
+                       (br)
+                       (textarea ([cols "80"] [rows "25"] [name "source"] [class "form-control"]))
+                       (br)
+                       (label (input ([type "checkbox"] [name "private"])) "Private Source?")
+                       nbsp nbsp nbsp
+                       (input ([type "submit"] [class "btn btn-default"]))))
+            (div ([class "col-md-3"])
                  (h4 "recent pastes")
-                 (ul
+                 (ul ([class "list-unstyled"])
                    ,@(map paste->xexpr (get-recent-pastes))))))))
 
 ; serve-signup : Request -> Response
@@ -193,15 +210,16 @@
               "register"
               #f
               `(div
-                 (h3 "register")
-                 (div
-                   (form ([method "post"] [action ,k-url])
-                         (label "Username ")
-                         (input ([type "text"] [name "username"])) (br)
-                         (label "Password ")
-                         (input ([type "password"] [name "password"]))
-                         (br) (br)
-                         (input ([type "submit"]))))))))))
+                 (h2 "register")
+                 (div ([style "width: 40%"])
+                      (form ([method "post"] [action ,k-url])
+                            (div ([class "form-group"])
+                                 (label ([for "usernameField"]) "Username")
+                                 (input ([type "text"] [class "form-control"] [name "username"] [id "usernameField"] [placeholder "Enter username"])))
+                            (div ([class "form-group"])
+                                 (label ([for "passwordField"]) "Password")
+                                 (input ([type "password"] [class "form-control"] [name "password"] [id "passwordField"] [placeholder "Password"])))
+                            (input ([type "submit"] [class "btn btn-default"]))))))))))
     (cons (extract-binding/single 'username (request-bindings req))
           (extract-binding/single 'password (request-bindings req))))
 
@@ -224,15 +242,16 @@
               "signin"
               #f
               `(div
-                 (h3 "sign-in")
-                 (div
+                 (h2 "sign-in")
+                 (div ([style "width: 40%"])
                    (form ([method "post"] [action ,k-url])
-                         (label "Username ")
-                         (input ([type "text"] [name "username"])) (br)
-                         (label "Password ")
-                         (input ([type "password"] [name "password"]))
-                         (br) (br)
-                         (input ([type "submit"]))))))))))
+                         (div ([class "form-group"])
+                              (label ([for "usernameField"]) "Username")
+                              (input ([type "text"] [class "form-control"] [name "username"] [id "usernameField"] [placeholder "Enter username"])))
+                         (div ([class "form-group"])
+                              (label ([for "passwordField"]) "Password")
+                              (input ([type "password"] [class "form-control"] [name "password"] [id "passwordField"] [placeholder "Password"])))
+                         (input ([type "submit"] [class "btn btn-default"]))))))))))
     (cons (extract-binding/single 'username (request-bindings req))
           (extract-binding/single 'password (request-bindings req))))
 
@@ -262,9 +281,10 @@
       (string-append "profile - " username)
       (get-session-username req)
       `(div
-        (h5 "profile: " ,username
-            (div 
-              (ul ,@(map paste->xexpr (get-user-pastes userid)))))))))
+        (h2 "profile: " ,username)
+        (div 
+          (ul ([class "list-unstyled"])
+              ,@(map paste->xexpr (get-user-pastes userid))))))))
 
 ; get-paste-url : Name -> String
 (define (get-paste-url name)

@@ -1,60 +1,24 @@
 
-html, body {
-  margin: 0 auto;
-  padding: 0;
-  width: 100%;
+body {
+    padding: 70px;
 }
 
-#menu-container {
-  margin: 0;
-  padding: 0;
+.paste-item {
+    border: 2px solid #ddd;
+    background: #efefef;
+    padding: 4px 4px 4px 4px;
+    margin: 6px 4px 6px 4px;
+    font-family: monospace;
 }
 
-#menu {
-  margin: 0;
-  padding: 0;
-  background-color: #333;
-  overflow: hidden;
-  list-style-type: none;
-  border-bottom: #222 solid;
+.paste-row-1 {
+    font-size: 120%;
 }
 
-#menu > li {
-  float: left;
+.paste-row-2 {
+    font-size: 90%;
 }
 
-#menu li > a {
-  margin: 0;
-  text-decoration: none;
-  display: block;
-  padding: 0.4em 0.6em 0.4em 0.6em;
-  color: #fff;
-}
-
-#menu li > a:hover {
-  text-decoration: none;
-  background-color: #000;
-}
-
-#page {
-  clear: both;
-  margin: 1.2em 1.2em 1.2em 1.2em;
-  padding: 0;
-}
-
-#paste-form {
-}
-
-#paste-column {
-  width: 0 auto;
-  float: left;
-}
-
-#recent-pastes-column {
-    float: right;
-}
-
-.submit-button {
-  padding: 0.8em 1.6em 0.8em 1.6em;
-  font-size: 1.2em;
+.paste-row-2 a:link, .pate-row-2 a:hover, .paste-row-2 a:visited {
+    color: red;
 }
