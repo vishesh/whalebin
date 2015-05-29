@@ -103,15 +103,15 @@
 (define (serve-upload req)
   (define name (random-name NAME-LEN))
   (define bindings (request-bindings req))
-  (define session-user (let ([username (get-session-username req)])
-                         (and username
-                              (get-user-id username))))
+  (define session-user (get-session-username req))
+  (define session-userid (and session-user
+                              (get-user-id session-user)))
   (cond
     [(exists-binding? 'source bindings)
      (create-paste!
       name
       (string->bytes/utf-8 (extract-binding/single 'source bindings))
-      #:userid session-user)
+      #:userid session-userid)
      (response/xexpr
        (page-template
          "upload"
@@ -136,7 +136,7 @@
       `(div ([id "page"])
             (div ([id "paste-column"])
                  (form ([action "/upload"] [method "post"] [id "paste-form"])
-                       (textarea ([cols "100"] [rows "30"]))
+                       (textarea ([cols "100"] [rows "30"] [name "source"]))
                        (br) (br)
                        (input ([type "checkbox"] [name "private"]))
                        (label "Private Paste")
@@ -144,7 +144,11 @@
                        (input ([type "checkbox"] [name "publish"]))
                        (label "Private Source")
                        (br) (br)
-                       (input ([type "submit"] [class "submit-button"]))))))))
+                       (input ([type "submit"] [class "submit-button"]))))
+            (div ([id "recent-pastes-column"])
+                 (h4 "recent pastes")
+                 (ul
+                   ,@(map paste->li (get-recent-pastes))))))))
 
 ; serve-signup : Request -> Response
 (define (serve-signup req)
@@ -164,7 +168,7 @@
                          (input ([type "text"] [name "username"]))
                          "Password"
                          (input ([type "password"] [name "password"]))
-                         (input ([type "submit"] [class "submit-button"]))))))))))
+                         (input ([type "submit"]))))))))))
     (cons (extract-binding/single 'username (request-bindings req))
           (extract-binding/single 'password (request-bindings req))))
 

@@ -47,6 +47,11 @@ html, body {
 
 #paste-column {
   width: 0 auto;
+  float: left;
+}
+
+#recent-pastes-column {
+    float: right;
 }
 
 .submit-button {
