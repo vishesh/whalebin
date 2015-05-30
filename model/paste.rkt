@@ -28,11 +28,12 @@
          paste-ts
          paste-userid
          paste-views
+         paste-compiler-error?
          paste-private?)
 
 ; Name is [a-zA-Z0-9]+
 
-(define-struct paste (id url title ts userid views private?) #:transparent)
+(define-struct paste (id url title ts userid views private? compiler-error?) #:transparent)
 
 ; random-name : Integer -> Name
 ; Returns a random name using random-string that has not been used by any
@@ -56,7 +57,7 @@
   (define result 
     (query-maybe-row
       DB-CONN
-      (format "SELECT id, url, title, ts, user_id, views, private FROM ~a WHERE url = ?" TABLE-PASTES)
+      (format "SELECT id, url, title, ts, user_id, views, private, compiler_error FROM ~a WHERE url = ?" TABLE-PASTES)
       url))
   (and result
        (apply make-paste (vector->list result))))
@@ -65,7 +66,7 @@
   (define result 
     (query-maybe-row
       DB-CONN
-      (format "SELECT id, url, title, ts, user_id, views, private FROM ~a WHERE id = ?" TABLE-PASTES)
+      (format "SELECT id, url, title, ts, user_id, views, private, compiler_error FROM ~a WHERE id = ?" TABLE-PASTES)
       id))
   (and result
        (apply make-paste (vector->list result))))
@@ -91,7 +92,7 @@
   (define results
     (query-rows
       DB-CONN
-      (format "SELECT id, url, title, ts, user_id, views, private FROM ~a ORDER BY ts DESC LIMIT ?" TABLE-PASTES) n))
+      (format "SELECT id, url, title, ts, user_id, views, private, compiler_error FROM ~a ORDER BY ts DESC LIMIT ?" TABLE-PASTES) n))
   (map (lambda (x) (apply make-paste (vector->list x))) results))
 
 ; get-recent-pastes : Integer -> ListOf<Paste>
@@ -100,7 +101,7 @@
   (define results
     (query-rows
       DB-CONN
-      (format "SELECT id, url, title, ts, user_id, views, private FROM ~a ORDER BY views DESC LIMIT ?" TABLE-PASTES) n))
+      (format "SELECT id, url, title, ts, user_id, views, private, compiler_error FROM ~a ORDER BY views DESC LIMIT ?" TABLE-PASTES) n))
   (map (lambda (x) (apply make-paste (vector->list x))) results))
 
 ; paste-output-ready? : Paste -> Boolean
@@ -149,13 +150,17 @@
   (define results
     (query-rows
       DB-CONN
-      (format "SELECT id, url, title, ts, user_id, views, private FROM ~a WHERE user_id = ? ORDER BY ts DESC" TABLE-PASTES)
+      (format "SELECT id, url, title, ts, user_id, views, private, compiler_error FROM ~a WHERE user_id = ? ORDER BY ts DESC" TABLE-PASTES)
       userid))
   (map (lambda (x) (apply make-paste (vector->list x))) results))
 
 ; check-error-report : Name String -> Void
 (define (check-error-report name r)
   (when (regexp-match "ERROR:" r)
+    (query-exec
+      DB-CONN
+      (format "UPDATE ~a SET compiler_error = 1 WHERE url = ?" TABLE-PASTES)
+      name)
     (repo-put! REPO-OUTPUT name 
                (string->bytes/utf-8 
                  (xexpr->string `(html

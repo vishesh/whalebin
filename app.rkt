@@ -68,7 +68,10 @@
             (define username (get-username-by-id (paste-userid paste)))
             (list "[" `(a ([href ,(profile-url username)]) ,username) "]")]
            [else '()])
-       ,(format "[hits ~a]" (paste-views paste)))))
+       ,(format "[hits ~a]" (paste-views paste))
+       ,@(if (equal? (paste-compiler-error? paste) 1) ; fixme
+           '("[error]")
+           '()))))
 
 ; response/message : String -> Response
 (define-syntax-rule (response/message user msg)
