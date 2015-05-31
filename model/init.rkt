@@ -13,9 +13,11 @@
 ; TODO: use connection pool
 ; http://docs.racket-lang.org/db/using-db.html#%28part._intro-servlets%29
 (define DB-CONN
-  (mysql-connect #:user DB-USER
-                 #:database DB-NAME
-                 #:password DB-PASSWORD))
+  (virtual-connection
+    (connection-pool
+      (λ () (mysql-connect #:user DB-USER
+                        #:database DB-NAME
+                        #:password DB-PASSWORD)))))
 
 ; init-db : -> Void
 (define (init-db)
