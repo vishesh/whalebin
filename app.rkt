@@ -212,7 +212,7 @@
             (div ([class "col-md-3"])
                  (h4 "recent pastes")
                  (ul ([class "list-unstyled"])
-                   ,@(map paste->xexpr (get-recent-pastes 50))))))))
+                   ,@(map paste->xexpr (get-recent-pastes 10))))))))
 
 ; serve-signup : Request -> Response
 (define (serve-signup req)
