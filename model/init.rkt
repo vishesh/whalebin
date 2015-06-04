@@ -45,6 +45,7 @@
                            id INTEGER PRIMARY KEY NOT NULL AUTO_INCREMENT,
                            url VARCHAR(16) NOT NULL UNIQUE,
                            title VARCHAR(20) NOT NULL DEFAULT '',
+                           descp VARCHAR (255) NOT NULL DEFAULT '', 
                            ts TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                            compiler_error BOOLEAN,
                            user_id INTEGER,

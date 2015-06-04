@@ -140,9 +140,10 @@
         `(div ([class "row"])
            (div ([class "col-md-2"])
                 (div ([style "font-size: 120%"])
-                     (a ([href ,(get-paste-url (paste-url paste))]) ,(paste-url paste)) (br)
-                     ,(paste-title paste) (br) (br)
-                     "Viewed " ,(number->string (paste-views paste)) " times." (br)
+                     (p (a ([href ,(get-paste-url (paste-url paste))]) "Paste #" ,(paste-url paste)))
+                     (p (b ,(paste-title paste)) (br) 
+                        ,(paste-descp paste))
+                     ,(number->string (paste-views paste)) " hits" (br)
                      ,@(if username
                          (list "Uploaded by " `(a ([href ,(profile-url username)]) ,username))
                          '())))
@@ -175,6 +176,7 @@
       #:private (and (exists-binding? 'private bindings)
                      (extract-binding/single 'private bindings))
       #:title (extract-binding/single 'title bindings)
+      #:descp (extract-binding/single 'descp bindings)
       #:userid session-userid)
      (response/xexpr
        (page-template
@@ -199,6 +201,8 @@
             (div ([class "col-md-9"])
                  (form ([action "/upload"] [method "post"] [id "paste-form"])
                        (input ([type "text"] [name "title"] [class "form-control"] [placeholder "Title"]))
+                       (br)
+                       (input ([type "text"] [name "descp"] [class "form-control"] [placeholder "Description"]))
                        (br)
                        (textarea ([style "font-family: monosapce;"] [cols "80"] [rows "25"] [name "source"] [class "form-control"]))
                        (br)

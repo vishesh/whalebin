@@ -29,11 +29,12 @@
          paste-userid
          paste-views
          paste-compiler-error?
+         paste-descp
          paste-private?)
 
 ; Name is [a-zA-Z0-9]+
 
-(define-struct paste (id url title ts userid views private? compiler-error?) #:transparent)
+(define-struct paste (id url title descp ts userid views private? compiler-error?) #:transparent)
 
 ; random-name : Integer -> Name
 ; Returns a random name using random-string that has not been used by any
@@ -57,7 +58,7 @@
   (define result 
     (query-maybe-row
       DB-CONN
-      (format "SELECT id, url, title, ts, user_id, views, private, compiler_error FROM ~a WHERE url = ?" TABLE-PASTES)
+      (format "SELECT id, url, title, descp, ts, user_id, views, private, compiler_error FROM ~a WHERE url = ?" TABLE-PASTES)
       url))
   (and result
        (apply make-paste (vector->list result))))
@@ -66,7 +67,7 @@
   (define result 
     (query-maybe-row
       DB-CONN
-      (format "SELECT id, url, title, ts, user_id, views, private, compiler_error FROM ~a WHERE id = ?" TABLE-PASTES)
+      (format "SELECT id, url, title, descp, ts, user_id, views, private, compiler_error FROM ~a WHERE id = ?" TABLE-PASTES)
       id))
   (and result
        (apply make-paste (vector->list result))))
@@ -92,7 +93,7 @@
   (define results
     (query-rows
       DB-CONN
-      (format "SELECT id, url, title, ts, user_id, views, private, compiler_error FROM ~a ORDER BY ts DESC LIMIT ?" TABLE-PASTES) n))
+      (format "SELECT id, url, title, descp, ts, user_id, views, private, compiler_error FROM ~a ORDER BY ts DESC LIMIT ?" TABLE-PASTES) n))
   (map (lambda (x) (apply make-paste (vector->list x))) results))
 
 ; get-recent-pastes : Integer -> ListOf<Paste>
@@ -101,7 +102,7 @@
   (define results
     (query-rows
       DB-CONN
-      (format "SELECT id, url, title, ts, user_id, views, private, compiler_error FROM ~a ORDER BY views DESC LIMIT ?" TABLE-PASTES) n))
+      (format "SELECT id, url, title, descp, ts, user_id, views, private, compiler_error FROM ~a ORDER BY views DESC LIMIT ?" TABLE-PASTES) n))
   (map (lambda (x) (apply make-paste (vector->list x))) results))
 
 ; paste-output-ready? : Paste -> Boolean
@@ -115,12 +116,12 @@
 
 ; create-paste! : Name bytes -> Void
 ; TODO: put both queries in transaction
-(define (create-paste! url content #:title [title ""] #:userid [userid #f] #:private [private #f])
+(define (create-paste! url content #:title [title ""] #:descp [descp ""] #:userid [userid #f] #:private [private #f])
   (query-exec
     DB-CONN
-    (format "INSERT INTO ~a (url, user_id, title, private) VALUES (?, ?, ?, ?)"
+    (format "INSERT INTO ~a (url, user_id, title, descp, private) VALUES (?, ?, ?, ?, ?)"
             TABLE-PASTES)
-    url (false->sql-null userid) title (if private 1 0))
+    url (false->sql-null userid) title descp (if private 1 0))
   (query-exec
     DB-CONN
     (format "INSERT INTO ~a (paste_id) VALUES (?)" TABLE-WORKER)
@@ -150,7 +151,7 @@
   (define results
     (query-rows
       DB-CONN
-      (format "SELECT id, url, title, ts, user_id, views, private, compiler_error FROM ~a WHERE user_id = ? ORDER BY ts DESC" TABLE-PASTES)
+      (format "SELECT id, url, title, descp, ts, user_id, views, private, compiler_error FROM ~a WHERE user_id = ? ORDER BY ts DESC" TABLE-PASTES)
       userid))
   (map (lambda (x) (apply make-paste (vector->list x))) results))
 
