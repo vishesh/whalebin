@@ -86,6 +86,7 @@
     [("api" "upload") #:method "post" serve-api-upload]
     [("upload") #:method "post" serve-upload]
     [("get" (string-arg)) #:method "get" serve-get]
+    [("get-full" (string-arg)) #:method "get" serve-get-full]
     [("get-src" (string-arg)) #:method "get" serve-get-src]
     [("auth" "signin") #:method "get" serve-signin]
     [("auth" "signup") #:method "get" serve-signup]
@@ -111,8 +112,8 @@
     [(false? username) #f]
     [else (equal? (get-user-id username) (paste-userid paste))]))
 
-; serve-get : Request Name -> Response
-(define (serve-get req name)
+; serve-get-full : Request Name -> Response
+(define (serve-get-full req name)
   (define paste (get-paste-by-name name))
   (if paste
     (cond
@@ -126,6 +127,39 @@
       [else (response/message (get-session-username req)
                               "Paste is not compiled yet! Try again in few seconds")])
     (response/message session-user "Paste not found!")))
+
+; serve-get: Request Name -> Response
+(define (serve-get req name)
+  (define paste (get-paste-by-name name))
+  (define session-user (get-session-username req))
+  (define username (if (number? (paste-userid paste)) ;fixme
+                     (get-username-by-id (paste-userid paste))
+                     #f))
+  (response/xexpr
+    (page-template
+      name
+      session-user
+      `(div ([class "row"])
+            (div ([class "col-md-3"])
+                 (div ([style "font-size: 120%"])
+                      (p (a ([href ,(get-paste-source-url (paste-url paste))] [class "btn btn-default"]) "Source") nbsp nbsp nbsp
+                         (a ([href ,(get-paste-full-url (paste-url paste))] [class "btn btn-default"]) "Fullscreen"))
+                      (p (b ,(paste-title paste)) (br) 
+                         ,(paste-descp paste))
+                      "Paste #" ,(paste-url paste) (br)
+                      ,(number->string (paste-views paste)) " hits" (br)
+                      ,@(if username
+                          (list "Uploaded by " `(a ([href ,(profile-url username)]) ,username))
+                          '())))
+            (div ([class "col-md-9"])
+                 ,(if (paste-output-ready? paste)
+                    `(iframe [(src ,(get-paste-full-url (paste-url paste)))
+                              (class "viewer")
+                              (allowfullscreen "true")
+                              (width "100%")
+                              (height "85%")
+                              (frameborder "0")])
+                    "Paste is not compiled yet! Try again in few seconds"))))))
 
 ; serve-get-src : Request Name -> Response
 (define (serve-get-src req name)
@@ -326,6 +360,9 @@
 ; get-paste-url : Name -> String
 (define (get-paste-url name)
   (string-append SERVER-ROOT "/get/" name))
+
+(define (get-paste-full-url name)
+  (string-append SERVER-ROOT "/get-full/" name))
 
 (define (get-paste-source-url name)
   (string-append SERVER-ROOT "/get-src/" name))
