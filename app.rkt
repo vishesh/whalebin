@@ -52,11 +52,12 @@
            (div ([class "container"]) ,body))))
 
 (define (paste->xexpr paste)
+  (define title (if (zero? (string-length (paste-title paste)))
+                  (paste-url paste)
+                  (paste-title paste)))
   `(li ([class "paste-item"])
      (div ([class "paste-row-1"])
-       (a ([href ,(get-paste-url (paste-url paste))]) ,(paste-url paste))
-       nbsp
-       (paste-title ,(paste-title paste)))
+       (a ([href ,(get-paste-url (paste-url paste))]) ,title))
      (div ([class "paste-row-2"])
        ,@(if (paste-private? paste)
            (list "["
@@ -140,9 +141,10 @@
         `(div ([class "row"])
            (div ([class "col-md-2"])
                 (div ([style "font-size: 120%"])
-                     (p (a ([href ,(get-paste-url (paste-url paste))]) "Paste #" ,(paste-url paste)))
+                     (p (a ([href ,(get-paste-url (paste-url paste))] [class "btn btn-default"]) "Execute"))
                      (p (b ,(paste-title paste)) (br) 
                         ,(paste-descp paste))
+                     "Paste #" ,(paste-url paste) (br)
                      ,(number->string (paste-views paste)) " hits" (br)
                      ,@(if username
                          (list "Uploaded by " `(a ([href ,(profile-url username)]) ,username))
