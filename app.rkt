@@ -33,7 +33,7 @@
                           (list `(li (a ([href "/auth/signin"]) "Sign In"))
                                 `(li (a ([href "/auth/signup"]) "Register")))))))))
 
-(define (page-template title user body)
+(define (page-template title user body #:head-hooks [head-hooks '()])
   `(html (head
            (title ,(string-append "whalebin " title))
            (meta ([charset "utf-8"]))
@@ -46,7 +46,8 @@
            (script ([src "https://ajax.googleapis.com/ajax/libs/jquery/1.11.2/jquery.min.js"]))
            (script ([src "https://maxcdn.bootstrapcdn.com/bootstrap/3.3.4/js/bootstrap.min.js"]))
            (script ([src "/main.js"]))
-           (link ([rel "stylesheet"] [type "text/css"] [href "/main.css"])))
+           (link ([rel "stylesheet"] [type "text/css"] [href "/main.css"]))
+           ,@head-hooks)
          (body
            ,(header-template user)
            (div ([class "container"]) ,body))))
