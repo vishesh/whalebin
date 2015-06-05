@@ -153,7 +153,8 @@
                       ,(number->string (paste-views paste)) " hits" (br)
                       ,@(if username
                           (list "Uploaded by " `(a ([href ,(profile-url username)]) ,username))
-                          '())))
+                          '())
+                      (p ,@(social-buttons (get-paste-url (paste-url paste))))))
             (div ([class "col-md-9"])
                  ,(if (paste-output-ready? paste)
                     `(iframe [(src ,(get-paste-full-url (paste-url paste)))
