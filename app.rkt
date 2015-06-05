@@ -178,7 +178,7 @@
         (paste-friendly-title paste)
         session-user
         `(div ([class "row"])
-           (div ([class "col-md-2"])
+           (div ([class "col-md-3"])
                 (div ([style "font-size: 120%"])
                      (p (a ([href ,(get-paste-url (paste-url paste))] [class "btn btn-default"]) "Execute"))
                      (p (b ,(paste-title paste)) (br) 
@@ -189,7 +189,7 @@
                          (list "Uploaded by " `(a ([href ,(profile-url username)]) ,username))
                          '())
                      (p ,@(social-buttons (get-paste-url (paste-url paste))))))
-           (div ([class "col-md-10"])
+           (div ([class "col-md-9"])
                 (pre (paste-source ,(port->string (paste-source paste))))))))
     (response/message session-user "Paste not found!")))
 
