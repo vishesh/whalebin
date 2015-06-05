@@ -16,6 +16,11 @@
 (define (profile-url user)
   (string-append "/profile/" user))
 
+(define (paste-friendly-title paste)
+  (if (zero? (string-length (paste-title paste)))
+    (paste-url paste)
+    (paste-title paste)))
+
 (define (header-template user)
   `(nav ([class "navbar navbar-inverse navbar-fixed-top"])
         (div ([class "container"])
@@ -35,7 +40,7 @@
 
 (define (page-template title user body #:head-hooks [head-hooks '()])
   `(html (head
-           (title ,(string-append "whalebin " title))
+           (title ,(string-append title " : whalebin "))
            (meta ([charset "utf-8"]))
            (link ([rel "stylesheet"]
                   [type "text/css"]
@@ -53,12 +58,10 @@
            (div ([class "container"]) ,body))))
 
 (define (paste->xexpr paste)
-  (define title (if (zero? (string-length (paste-title paste)))
-                  (paste-url paste)
-                  (paste-title paste)))
   `(li ([class "paste-item"])
      (div ([class "paste-row-1"])
-       (a ([href ,(get-paste-url (paste-url paste))]) ,title))
+       (a ([href ,(get-paste-url (paste-url paste))])
+          ,(paste-friendly-title paste)))
      (div ([class "paste-row-2"])
        ,@(if (paste-private? paste)
            (list "["
@@ -137,7 +140,7 @@
                      #f))
   (response/xexpr
     (page-template
-      name
+      (paste-friendly-title paste)
       session-user
       `(div ([class "row"])
             (div ([class "col-md-3"])
@@ -171,7 +174,7 @@
   (if (and paste (can-access-paste? paste session-user))
     (response/xexpr
       (page-template
-        name
+        (paste-friendly-title paste)
         session-user
         `(div ([class "row"])
            (div ([class "col-md-2"])
@@ -183,7 +186,8 @@
                      ,(number->string (paste-views paste)) " hits" (br)
                      ,@(if username
                          (list "Uploaded by " `(a ([href ,(profile-url username)]) ,username))
-                         '())))
+                         '())
+                     (p ,@(social-buttons (get-paste-url (paste-url paste))))))
            (div ([class "col-md-10"])
                 (pre (paste-source ,(port->string (paste-source paste))))))))
     (response/message session-user "Paste not found!")))
@@ -381,6 +385,14 @@
      (a ([href "/auth/signin"]) "Signin") " | "
      (a ([href "/auth/signup"]) "Signup")
      " ) "))
+
+(define (social-buttons url)
+  twitter-social-button)
+
+(define twitter-social-button
+  (list
+    `(a ([href "https://twitter.com/share"] [class "twitter-share-button"] [data-hashtags "racketlang"]) "Tweet")
+    `(script "!function(d,s,id){var js,fjs=d.getElementsByTagName(s)[0],p=/^http:/.test(d.location)?'http':'https';if(!d.getElementById(id)){js=d.createElement(s);js.id=id;js.src=p+'://platform.twitter.com/widgets.js';fjs.parentNode.insertBefore(js,fjs);}}(document, 'script', 'twitter-wjs');")))
 
 (define (start req)
   (do-dispatch req))
