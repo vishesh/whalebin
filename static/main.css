@@ -4,19 +4,19 @@ body {
 }
 
 .paste-item {
-    border: 2px solid #ddd;
-    background: #efefef;
+    border: 1px #efefef solid;
+    background: #f5f5f5;
     padding: 4px 4px 4px 4px;
-    margin: 6px 4px 6px 4px;
-    font-family: monospace;
+    margin: 4px 0px 0px 0px;
 }
 
 .paste-row-1 {
-    font-size: 120%;
+    font-size: 100%;
 }
 
 .paste-row-2 {
     font-size: 90%;
+    font-family: monospace;
 }
 
 .paste-row-2 a:link, .pate-row-2 a:hover, .paste-row-2 a:visited {
