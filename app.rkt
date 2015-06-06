@@ -11,6 +11,20 @@
 
 (define MIME-PLAIN-TEXT #"text/plain")
 
+(define STARTER-TEMPLATE-CODE
+#<<EOF
+#lang whalesong
+
+;; module names are little different from standard racket libs. Just prefix
+;; libraries with 'whalesong'
+(require whalesong/image)
+(require whalesong/world)
+(require whalesong/lang/list)
+
+;; ... and now your code
+EOF
+)
+
 ; TODO: Put constants and messages above
 
 (define (profile-url user)
@@ -250,9 +264,10 @@
                  (form ([action "/upload"] [method "post"] [id "paste-form"])
                        (input ([type "text"] [name "title"] [class "form-control"] [placeholder "Title"]))
                        (br)
-                       (input ([type "text"] [name "descp"] [class "form-control"] [placeholder "Description"]))
+                       (textarea ([name "descp"] [class "form-control"] [placeholder "Description"] [rows "3"] [style "resize: vertical"]))
                        (br)
-                       (textarea ([style "font-family: monosapce;"] [cols "80"] [rows "25"] [name "source"] [class "form-control"] [id "source"]))
+                       (textarea ([style "font-family: monosapce;"] [cols "80"] [rows "25"] [name "source"] [class "form-control"] [id "source"])
+                                 ,STARTER-TEMPLATE-CODE)
                        (br)
                        (label (input ([type "checkbox"] [name "private"])) "Private Source?")
                        nbsp nbsp nbsp
