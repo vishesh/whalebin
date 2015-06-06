@@ -190,7 +190,13 @@
                          '())
                      (p ,@(social-buttons (get-paste-url (paste-url paste))))))
            (div ([class "col-md-9"])
-                (pre (paste-source ,(port->string (paste-source paste))))))))
+                (pre
+                  (code ([class "scheme"])
+                    (paste-source ,(port->string (paste-source paste)))))))
+        #:head-hooks (list `(script ([src "/highlight.pack.js"]))
+                           `(link ([rel "stylesheet"]
+                                   [href "/github.css"]))
+                           `(script "hljs.initHighlightingOnLoad();"))))
     (response/message session-user "Paste not found!")))
 
 ; serve-api-upload : Request -> Response
