@@ -22,3 +22,8 @@ body {
 .paste-row-2 a:link, .pate-row-2 a:hover, .paste-row-2 a:visited {
     color: red;
 }
+
+.CodeMirror {
+    border: 1px solid black;
+    font-size: 13px;
+}

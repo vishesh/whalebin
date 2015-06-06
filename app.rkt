@@ -252,7 +252,7 @@
                        (br)
                        (input ([type "text"] [name "descp"] [class "form-control"] [placeholder "Description"]))
                        (br)
-                       (textarea ([style "font-family: monosapce;"] [cols "80"] [rows "25"] [name "source"] [class "form-control"]))
+                       (textarea ([style "font-family: monosapce;"] [cols "80"] [rows "25"] [name "source"] [class "form-control"] [id "source"]))
                        (br)
                        (label (input ([type "checkbox"] [name "private"])) "Private Source?")
                        nbsp nbsp nbsp
@@ -260,7 +260,21 @@
             (div ([class "col-md-3"])
                  (h4 "recent pastes")
                  (ul ([class "list-unstyled"])
-                   ,@(map paste->xexpr (get-recent-pastes 10))))))))
+                   ,@(map paste->xexpr (get-recent-pastes 10))))
+            
+            `(script  #<<EOF
+                      var myCodeMirror = CodeMirror.fromTextArea(document.getElementById('source'), {
+                        lineNumbers: true,
+                        styleActiveLine: true,
+                        matchBrackets: true
+                      });  
+EOF
+                      ))
+      #:head-hooks (list `(script ([src "https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.3.0/codemirror.min.js"]))
+                         `(script ([src "https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.3.0/mode/scheme/scheme.min.js"]))
+                         `(link ([rel "stylesheet"]
+                                 [href "https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.3.0/codemirror.min.css"]))
+                         ))))
 
 ; serve-signup : Request -> Response
 (define (serve-signup req)
