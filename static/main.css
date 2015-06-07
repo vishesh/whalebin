@@ -27,3 +27,7 @@ body {
     border: 1px solid black;
     font-size: 13px;
 }
+
+.paste-meta {
+    font-size: 85%;
+}

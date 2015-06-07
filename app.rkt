@@ -110,6 +110,7 @@ EOF
     [("auth" "signoff") #:method "get" serve-signoff]
     [("profile" (string-arg)) #:method "get" serve-profile]
     [("explore") #:method "get" serve-explore]
+    [("edit") #:method "post" serve-edit]
     [("") serve-default]))
 
 (define (request-session-token req)
@@ -128,6 +129,11 @@ EOF
     [(or (false? (paste-private? paste)) (equal? (paste-private? paste) 0)) #t]
     [(false? username) #f]
     [else (equal? (get-user-id username) (paste-userid paste))]))
+
+(define (can-write-paste? paste username)
+  (if (false? username)
+    #f
+    (equal? (get-user-id username) (paste-userid paste))))
 
 ; serve-get-full : Request Name -> Response
 (define (serve-get-full req name)
@@ -161,13 +167,20 @@ EOF
                  (div ([style "font-size: 120%"])
                       (p (a ([href ,(get-paste-source-url (paste-url paste))] [class "btn btn-default"]) "Source") nbsp nbsp nbsp
                          (a ([href ,(get-paste-full-url (paste-url paste))] [class "btn btn-default"]) "Fullscreen"))
-                      (p (b ,(paste-title paste)) (br) 
-                         ,(paste-descp paste))
-                      "Paste #" ,(paste-url paste) (br)
-                      ,(number->string (paste-views paste)) " hits" (br)
-                      ,@(if username
-                          (list "Uploaded by " `(a ([href ,(profile-url username)]) ,username))
-                          '())
+                      (p (h3 ,(paste-title paste))
+                        ,(paste-descp paste))
+                      (p ([class "paste-meta"]) 
+                        "Paste #" ,(paste-url paste) (br)
+                        ,(number->string (paste-views paste)) " hits" (br)
+                        ,@(if username
+                            (list "Uploaded by " `(a ([href ,(profile-url username)]) ,username))
+                            '()))
+                      ,@(if (can-write-paste? paste username)
+                          (list `(p (button ([class "btn btn-default"]
+                                             [data-toggle "modal"]
+                                             [data-target "#edit-modal"])
+                                            "Edit")))
+                          `())
                       (p ,@(social-buttons (get-paste-url (paste-url paste))))))
             (div ([class "col-md-9"])
                  ,(if (paste-output-ready? paste)
@@ -177,7 +190,43 @@ EOF
                               (width "100%")
                               (height "85%")
                               (frameborder "0")])
-                    "Paste is not compiled yet! Try again in few seconds"))))))
+                    "Paste is not compiled yet! Try again in few seconds"))
+            ,(get-edit-dialog paste)))))
+
+(define (get-edit-dialog paste)
+  `(div ([class "modal fade"] [id "edit-modal"])
+        (div ([class "modal-dialog"])
+             (div ([class "modal-content"])
+                  (div ([class "modal-header"])
+                       (button ([type "button"]
+                                [class "close"]
+                                [data-dismiss "modal"]
+                                [aria-label "Close"])
+                               (span ([aria-hidden "true"]) times))
+                       (h4 "Edit paste title and description"))
+                  (div ([class "modal-body"])
+                       (form ([id "edit-form"] [action "/edit"] [method "post"])
+                             (input ([type "hidden"]
+                                     [name "paste-url"]
+                                     [value ,(paste-url paste)]))
+                             (input ([type "text"]
+                                     [name "title"]
+                                     [class "form-control"]
+                                     [placeholder "Title"]
+                                     [value ,(paste-title paste)])) (br)
+                             (textarea ([name "descp"]
+                                        [class "form-control"]
+                                        [placeholder "Description"]
+                                        [rows "3"] [style "resize: vertical"])
+                                       ,(paste-descp paste))))
+                  (div ([class "modal-footer"])
+                       (button ([type "button"]
+                                [class "btn btn-default"]
+                                [data-dismiss "modal"]) "Close")
+                       (button ([type "button"]
+                                [class "btn btn-primary"]
+                                [onclick "$('#edit-form').submit()"])
+                               "Save changes"))))))
 
 ; serve-get-src : Request Name -> Response
 (define (serve-get-src req name)
@@ -195,23 +244,54 @@ EOF
            (div ([class "col-md-3"])
                 (div ([style "font-size: 120%"])
                      (p (a ([href ,(get-paste-url (paste-url paste))] [class "btn btn-default"]) "Execute"))
-                     (p (b ,(paste-title paste)) (br) 
+                     (p (h3 ,(paste-title paste))
                         ,(paste-descp paste))
-                     "Paste #" ,(paste-url paste) (br)
-                     ,(number->string (paste-views paste)) " hits" (br)
-                     ,@(if username
-                         (list "Uploaded by " `(a ([href ,(profile-url username)]) ,username))
-                         '())
+                     (p ([class "paste-meta"]) 
+                        "Paste #" ,(paste-url paste) (br)
+                        ,(number->string (paste-views paste)) " hits" (br)
+                        ,@(if username
+                            (list "Uploaded by " `(a ([href ,(profile-url username)]) ,username))
+                            '()))
+                     ,@(if (can-write-paste? paste username)
+                          (list `(p (button ([class "btn btn-default"]
+                                             [data-toggle "modal"]
+                                             [data-target "#edit-modal"])
+                                            "Edit")))
+                          `())
                      (p ,@(social-buttons (get-paste-url (paste-url paste))))))
            (div ([class "col-md-9"])
                 (pre
                   (code ([class "scheme"])
-                    (paste-source ,(port->string (paste-source paste)))))))
+                    (paste-source ,(port->string (paste-source paste))))))
+           ,(get-edit-dialog paste))
         #:head-hooks (list `(script ([src "/highlight.pack.js"]))
                            `(link ([rel "stylesheet"]
                                    [href "/github.css"]))
                            `(script "hljs.initHighlightingOnLoad();"))))
     (response/message session-user "Paste not found!")))
+
+(define (serve-edit req)
+  (define url (extract-binding/single 'paste-url (request-bindings req)))
+  (define title (extract-binding/single 'title (request-bindings req)))
+  (define descp (extract-binding/single 'descp (request-bindings req))) 
+  (define paste (get-paste-by-name url))
+  (define username (if (number? (paste-userid paste)) ;fixme
+                     (get-username-by-id (paste-userid paste))
+                     #f))
+  
+  (when (can-write-paste? paste username)
+    (paste-save!
+      (make-paste (paste-id paste)
+                  (paste-url paste)
+                  title
+                  descp
+                  (paste-ts paste)
+                  (paste-userid paste)
+                  (paste-views paste)
+                  (paste-private? paste)
+                  (paste-compiler-error? paste))))
+
+  (redirect-to (get-paste-url (paste-url paste))))
 
 ; serve-api-upload : Request -> Response
 (define (serve-api-upload req)

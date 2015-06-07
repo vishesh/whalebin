@@ -30,7 +30,9 @@
          paste-views
          paste-compiler-error?
          paste-descp
-         paste-private?)
+         paste-private?
+         make-paste
+         paste-save!)
 
 ; Name is [a-zA-Z0-9]+
 
@@ -52,6 +54,31 @@
     DB-CONN
     (format "SELECT id FROM ~a WHERE url = ?" TABLE-PASTES)
     url))
+
+; paste-save! : Paste -> Void
+(define (paste-save! paste)
+  (query-exec
+    DB-CONN
+    (format  #<<EOF
+             UPDATE ~a SET
+                title = ?,
+                descp = ?,
+                ts = ?,
+                user_id = ?,
+                views = ?,
+                private = ?,
+                compiler_error = ?
+            WHERE id = ?;
+EOF
+    TABLE-PASTES)
+    (paste-title paste)
+    (paste-descp paste) 
+    (paste-ts paste)
+    (paste-userid paste)
+    (paste-views paste)
+    (paste-private? paste)
+    (paste-compiler-error? paste)
+    (paste-id paste)))
 
 ; get-paste : Name -> Maybe<Paste>
 (define (get-paste-by-name url)
