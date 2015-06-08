@@ -175,7 +175,16 @@ EOF
                         ,@(if username
                             (list "Uploaded by " `(a ([href ,(profile-url username)]) ,username))
                             '()))
-                      ,@(if (can-write-paste? paste username)
+                      ,@(if (can-access-paste? paste session-user)
+                          (list `(form  ([method "get"] [action "/"])
+                                        (input ([type "hidden"]
+                                                [name "fork-url"]
+                                                [value ,name]))
+                                        (input ([type "submit"]
+                                                [class "btn btn-default"]
+                                                [value "Fork Paste"]))))
+                          '())
+                      ,@(if (can-write-paste? paste session-user)
                           (list `(p (button ([class "btn btn-default"]
                                              [data-toggle "modal"]
                                              [data-target "#edit-modal"])
@@ -252,7 +261,16 @@ EOF
                         ,@(if username
                             (list "Uploaded by " `(a ([href ,(profile-url username)]) ,username))
                             '()))
-                     ,@(if (can-write-paste? paste username)
+                      ,@(if (can-access-paste? paste session-user)
+                          (list `(form  ([method "get"] [action "/"])
+                                        (input ([type "hidden"]
+                                                [name "fork-url"]
+                                                [value ,name]))
+                                        (input ([type "submit"]
+                                                [class "btn btn-default"]
+                                                [value "Fork Paste"]))))
+                          '())
+                     ,@(if (can-write-paste? paste session-user)
                           (list `(p (button ([class "btn btn-default"]
                                              [data-toggle "modal"]
                                              [data-target "#edit-modal"])
@@ -275,11 +293,8 @@ EOF
   (define title (extract-binding/single 'title (request-bindings req)))
   (define descp (extract-binding/single 'descp (request-bindings req))) 
   (define paste (get-paste-by-name url))
-  (define username (if (number? (paste-userid paste)) ;fixme
-                     (get-username-by-id (paste-userid paste))
-                     #f))
-  
-  (when (can-write-paste? paste username)
+  (define session-user (get-session-username req))
+  (when (can-write-paste? paste session-user)
     (paste-save!
       (make-paste (paste-id paste)
                   (paste-url paste)
@@ -335,6 +350,17 @@ EOF
 ; serve-default : Request -> Response
 (define (serve-default req)
   (define session-user (get-session-username req))
+  (define bindings (request-bindings req))
+  (define-values (title descp source)
+                 (cond
+                   [(exists-binding? 'fork-url bindings)
+                    (define paste (get-paste-by-name (extract-binding/single 'fork-url bindings)))
+                    (if (can-access-paste? paste session-user)
+                      (values (paste-title paste)
+                              (paste-descp paste)
+                              (port->string (paste-source paste)))
+                      (values "" "" STARTER-TEMPLATE-CODE))]
+                   [else (values "" "" STARTER-TEMPLATE-CODE)]))
   (response/xexpr
     (page-template
       ""
@@ -342,12 +368,12 @@ EOF
       `(div ([class "row"])
             (div ([class "col-md-9"])
                  (form ([action "/upload"] [method "post"] [id "paste-form"])
-                       (input ([type "text"] [name "title"] [class "form-control"] [placeholder "Title"]))
+                       (input ([type "text"] [name "title"] [class "form-control"] [placeholder "Title"] [value ,title]))
                        (br)
-                       (textarea ([name "descp"] [class "form-control"] [placeholder "Description"] [rows "3"] [style "resize: vertical"]))
+                       (textarea ([name "descp"] [class "form-control"] [placeholder "Description"] [rows "3"] [style "resize: vertical"]) ,descp)
                        (br)
                        (textarea ([style "font-family: monosapce;"] [cols "80"] [rows "25"] [name "source"] [class "form-control"] [id "source"])
-                                 ,STARTER-TEMPLATE-CODE)
+                                 ,source)
                        (br)
                        (label (input ([type "checkbox"] [name "private"])) "Private Source?")
                        nbsp nbsp nbsp
