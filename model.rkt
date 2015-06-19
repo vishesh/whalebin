@@ -1,7 +1,6 @@
 #lang racket
 
-(require db
-         )
+(require db)
 
 (require "model/init.rkt"
          "model/paste.rkt"

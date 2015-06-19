@@ -6,8 +6,9 @@
          web-server/servlet/web
          web-server/servlet-env
          web-server/dispatch)
-(require "model.rkt")
-(require "config.rkt")
+(require "model.rkt"
+         "config.rkt"
+         "web.rkt")
 
 (define MIME-PLAIN-TEXT #"text/plain")
 
@@ -27,15 +28,41 @@ EOF
 
 ; TODO: Put constants and messages above
 
-(define (profile-url user)
-  (string-append "/profile/" user))
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; 
+;; Helpers
 
+; paste -> string
+; returns title if available or the paste number for displaying
 (define (paste-friendly-title paste)
   (if (zero? (string-length (paste-title paste)))
     (paste-url paste)
     (paste-title paste)))
 
-(define (header-template user)
+; -> username?
+; returns the username of current request
+(define (get-session-username)
+  (and (current-session)
+       (hash-ref (current-session) 'username)))
+
+; paste username? -> boolean
+(define (can-access-paste? paste username)
+  (cond
+    [(or (false? (paste-private? paste)) (equal? (paste-private? paste) 0)) #t]
+    [(false? username) #f]
+    [else (equal? (get-user-id username) (paste-userid paste))]))
+
+; paste username -> boolean
+(define (can-write-paste? paste username)
+  (if (false? username)
+    #f
+    (equal? (get-user-id username) (paste-userid paste))))
+
+
+; string -> xexpr?
+; xexpr for header which includes navbar
+(define (header-template username)
   `(nav ([class "navbar navbar-inverse navbar-fixed-top"])
         (div ([class "container"])
              (div ([class "navbar-header"])
@@ -45,32 +72,38 @@ EOF
                       (li (a ([href "/"]) "New"))
                       (li (a ([href "/explore"]) "Explore")))
                   (ul ([class "nav navbar-nav navbar-right"])
-                      ,@(if user
+                      ,@(if username
                           (list 
-                            `(li (a ([href ,(profile-url user)]) ,user))
+                            `(li (a ([href ,(profile-url username)]) ,username))
                             `(li (a ([href "/auth/signoff"]) "Sign Off")))
                           (list `(li (a ([href "/auth/signin"]) "Sign In"))
                                 `(li (a ([href "/auth/signup"]) "Register")))))))))
 
-(define (page-template title user body #:head-hooks [head-hooks '()])
-  `(html (head
-           (title ,(string-append title " : whalebin "))
-           (meta ([charset "utf-8"]))
-           (link ([rel "stylesheet"]
-                  [type "text/css"]
-                  [href "https://maxcdn.bootstrapcdn.com/bootstrap/3.3.4/css/bootstrap.min.css"])) 
-           (link ([rel "stylesheet"]
-                  [type "text/css"]
-                  [href "https://maxcdn.bootstrapcdn.com/bootstrap/3.3.4/css/bootstrap-theme.min.css"])) 
-           (script ([src "https://ajax.googleapis.com/ajax/libs/jquery/1.11.2/jquery.min.js"]))
-           (script ([src "https://maxcdn.bootstrapcdn.com/bootstrap/3.3.4/js/bootstrap.min.js"]))
-           (script ([src "/main.js"]))
-           (link ([rel "stylesheet"] [type "text/css"] [href "/main.css"]))
-           ,@head-hooks)
-         (body
-           ,(header-template user)
-           (div ([class "container"]) ,body))))
+; string string xexpr? [xexpr?] -> xexpr?
+; Returns an xexpr for complete page. body is spliced in betweeen body tags,
+; and head-hooks are spliced in head tag
+(define (page-template title username body #:head-hooks [head-hooks '()])
+  `(html
+     (head
+       (title ,(string-append title " : whalebin "))
+       (meta ([charset "utf-8"]))
+       (link ([rel "stylesheet"]
+              [type "text/css"]
+              [href "https://maxcdn.bootstrapcdn.com/bootstrap/3.3.4/css/bootstrap.min.css"])) 
+       (link ([rel "stylesheet"]
+              [type "text/css"]
+              [href "https://maxcdn.bootstrapcdn.com/bootstrap/3.3.4/css/bootstrap-theme.min.css"])) 
+       (script ([src "https://ajax.googleapis.com/ajax/libs/jquery/1.11.2/jquery.min.js"]))
+       (script ([src "https://maxcdn.bootstrapcdn.com/bootstrap/3.3.4/js/bootstrap.min.js"]))
+       (script ([src "/main.js"]))
+       (link ([rel "stylesheet"] [type "text/css"] [href "/main.css"]))
+       ,@head-hooks)
+     (body
+       ,(header-template username)
+       (div ([class "container"]) ,body))))
 
+; paste -> xexpr?
+; web representation for given paste
 (define (paste->xexpr paste)
   `(li ([class "paste-item"])
      (div ([class "paste-row-1"])
@@ -92,51 +125,14 @@ EOF
            '("[error]")
            '()))))
 
-; response/message : String -> Response
-(define-syntax-rule (response/message user msg)
-  (response/xexpr
-    (page-template "message" user `(body (p ,msg)))))
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;
+;; Handlers
 
-; do-dispatch : URL -> 
-(define-values (do-dispatch url)
-  (dispatch-rules
-    [("api" "upload") #:method "post" serve-api-upload]
-    [("upload") #:method "post" serve-upload]
-    [("get" (string-arg)) #:method "get" serve-get]
-    [("get-full" (string-arg)) #:method "get" serve-get-full]
-    [("get-src" (string-arg)) #:method "get" serve-get-src]
-    [("auth" "signin") #:method "get" serve-signin]
-    [("auth" "signup") #:method "get" serve-signup]
-    [("auth" "signoff") #:method "get" serve-signoff]
-    [("profile" (string-arg)) #:method "get" serve-profile]
-    [("explore") #:method "get" serve-explore]
-    [("edit") #:method "post" serve-edit]
-    [("") serve-default]))
-
-(define (request-session-token req)
-  (request-id-cookie SESSION-COOKIE-NAME SESSION-COOKIE-SALT req))
-
-(define (get-session-username req)
-  (define token (request-session-token req))
-  (and token
-       (session-user token)))
-
-(define (logged-in? req)
-  (string? (get-session-username req)))
-
-(define (can-access-paste? paste username)
-  (cond
-    [(or (false? (paste-private? paste)) (equal? (paste-private? paste) 0)) #t]
-    [(false? username) #f]
-    [else (equal? (get-user-id username) (paste-userid paste))]))
-
-(define (can-write-paste? paste username)
-  (if (false? username)
-    #f
-    (equal? (get-user-id username) (paste-userid paste))))
 
 ; serve-get-full : Request Name -> Response
-(define (serve-get-full req name)
+(define/session-handler (serve-get-full req name)
   (define paste (get-paste-by-name name))
   (if paste
     (cond
@@ -147,15 +143,15 @@ EOF
          (current-seconds) TEXT/HTML-MIME-TYPE
          '()
          (list (port->bytes (paste-web-output paste))))]
-      [else (response/message (get-session-username req)
+      [else (response/message (get-session-username)
                               "Paste is not compiled yet! Try again in few seconds")])
     (response/message session-user "Paste not found!")))
 
 ; serve-get: Request Name -> Response
-(define (serve-get req name)
+(define/session-handler (serve-get req name)
   (define paste (get-paste-by-name name))
-  (define session-user (get-session-username req))
-  (define username (if (number? (paste-userid paste)) ;fixme
+  (define session-user (get-session-username))
+  (define paste-user (if (number? (paste-userid paste)) ;fixme
                      (get-username-by-id (paste-userid paste))
                      #f))
   (response/xexpr
@@ -172,8 +168,8 @@ EOF
                       (p ([class "paste-meta"]) 
                         "Paste #" ,(paste-url paste) (br)
                         ,(number->string (paste-views paste)) " hits" (br)
-                        ,@(if username
-                            (list "Uploaded by " `(a ([href ,(profile-url username)]) ,username))
+                        ,@(if paste-user
+                            (list "Uploaded by " `(a ([href ,(profile-url paste-user)]) ,paste-user))
                             '()))
                       ,@(if (can-access-paste? paste session-user)
                           (list `(form  ([method "get"] [action "/"])
@@ -238,10 +234,10 @@ EOF
                                "Save changes"))))))
 
 ; serve-get-src : Request Name -> Response
-(define (serve-get-src req name)
+(define/session-handler (serve-get-src req name)
   (define paste (get-paste-by-name name))
-  (define session-user (get-session-username req))
-  (define username (if (number? (paste-userid paste)) ;fixme
+  (define session-user (get-session-username ))
+  (define paste-user (if (number? (paste-userid paste)) ;fixme
                      (get-username-by-id (paste-userid paste))
                      #f))
   (if (and paste (can-access-paste? paste session-user))
@@ -258,8 +254,8 @@ EOF
                      (p ([class "paste-meta"]) 
                         "Paste #" ,(paste-url paste) (br)
                         ,(number->string (paste-views paste)) " hits" (br)
-                        ,@(if username
-                            (list "Uploaded by " `(a ([href ,(profile-url username)]) ,username))
+                        ,@(if paste-user
+                            (list "Uploaded by " `(a ([href ,(profile-url paste-user)]) ,paste-user))
                             '()))
                       ,@(if (can-access-paste? paste session-user)
                           (list `(form  ([method "get"] [action "/"])
@@ -288,12 +284,13 @@ EOF
                            `(script "hljs.initHighlightingOnLoad();"))))
     (response/message session-user "Paste not found!")))
 
-(define (serve-edit req)
+; serve-edit : Request -> Response
+(define/session-handler (serve-edit req)
   (define url (extract-binding/single 'paste-url (request-bindings req)))
   (define title (extract-binding/single 'title (request-bindings req)))
   (define descp (extract-binding/single 'descp (request-bindings req))) 
   (define paste (get-paste-by-name url))
-  (define session-user (get-session-username req))
+  (define session-user (get-session-username))
   (when (can-write-paste? paste session-user)
     (paste-save!
       (make-paste (paste-id paste)
@@ -319,10 +316,10 @@ EOF
     (list (string->bytes/utf-8 (get-paste-url name)))))
 
 ; serve-upload : Request -> Response
-(define (serve-upload req)
+(define/session-handler (serve-upload req)
   (define name (random-name NAME-LEN))
   (define bindings (request-bindings req))
-  (define session-user (get-session-username req))
+  (define session-user (get-session-username))
   (define session-userid (and session-user
                               (get-user-id session-user)))
   (cond
@@ -348,8 +345,8 @@ EOF
     [else (response/message session-user "Invalid params passed")]))
 
 ; serve-default : Request -> Response
-(define (serve-default req)
-  (define session-user (get-session-username req))
+(define/session-handler (serve-default req)
+  (define session-user (get-session-username))
   (define bindings (request-bindings req))
   (define-values (title descp source)
                  (cond
@@ -398,7 +395,7 @@ EOF
                          ))))
 
 ; serve-signup : Request -> Response
-(define (serve-signup req)
+(define/session-handler (serve-signup req)
   (define (get-creds)
     (define req
       (send/suspend
@@ -432,7 +429,8 @@ EOF
                                         "user created. go back and login"]
          [else "user already exists. Try another username"])])))
 
-(define (serve-signin req)
+; serve-signin : Request -> Response
+(define/session-handler (serve-signin req)
   (define (get-creds)
     (define req
       (send/suspend
@@ -467,30 +465,33 @@ EOF
                      #:headers (map cookie->header (list cookie)))]
        [else (response/message #f "invalid username/password.")])]))
 
-(define (serve-signoff req)
-  (destroy-session (request-session-token req))
+; serve-signoff : Request -> Response
+(define/session-handler (serve-signoff req)
+  (destroy-session (request-session-cookie req))
   (redirect-to "/"
                #:headers
                (map cookie->header
                     (list (logout-id-cookie SESSION-COOKIE-NAME #:path "/")))))
 
-(define (serve-profile req username)
+; serve-profile : Request Name -> Response
+(define/session-handler (serve-profile req username)
   (define userid (get-user-id username))
   (response/xexpr
     (page-template
       (string-append "profile - " username)
-      (get-session-username req)
+      (get-session-username)
       `(div
         (h2 "profile: " ,username)
         (div 
           (ul ([class "list-unstyled"])
               ,@(map paste->xexpr (get-user-pastes userid))))))))
 
-(define (serve-explore req)
+; serve-explore : Request -> Response
+(define/session-handler (serve-explore req)
   (response/xexpr
     (page-template
       (string-append "explore")
-      (get-session-username req)
+      (get-session-username)
       `(div
          (h2 "explore")
          (div ([class "row"])
@@ -503,15 +504,31 @@ EOF
                    (ul ([class "list-unstyled"])
                        ,@(map paste->xexpr (get-recent-pastes 50)))))))))
 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;
+;; URL builder
+
+; profile-user : Name -> String
+(define (profile-url username)
+  (string-append "/profile/" username))
+
 ; get-paste-url : Name -> String
 (define (get-paste-url name)
   (string-append SERVER-ROOT "/get/" name))
 
+; get-paste-full-url : Name -> String
 (define (get-paste-full-url name)
   (string-append SERVER-ROOT "/get-full/" name))
 
+; get-paste-source-url : Name -> String
 (define (get-paste-source-url name)
   (string-append SERVER-ROOT "/get-src/" name))
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;
+;; xexpr snippets
 
 (define (user-bar-xexpr user)
   `(div
@@ -535,6 +552,31 @@ EOF
   (list
     `(a ([href "https://twitter.com/share"] [class "twitter-share-button"] [data-hashtags "racketlang"]) "Tweet")
     `(script "!function(d,s,id){var js,fjs=d.getElementsByTagName(s)[0],p=/^http:/.test(d.location)?'http':'https';if(!d.getElementById(id)){js=d.createElement(s);js.id=id;js.src=p+'://platform.twitter.com/widgets.js';fjs.parentNode.insertBefore(js,fjs);}}(document, 'script', 'twitter-wjs');")))
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+; response/message : String -> Response
+(define-syntax-rule (response/message user msg)
+  (response/xexpr
+    (page-template "message" user `(body (p ,msg)))))
+
+; do-dispatch : URL -> 
+(define-values (do-dispatch url)
+  (dispatch-rules
+    [("api" "upload") #:method "post" serve-api-upload]
+    [("upload") #:method "post" serve-upload]
+    [("get" (string-arg)) #:method "get" serve-get]
+    [("get-full" (string-arg)) #:method "get" serve-get-full]
+    [("get-src" (string-arg)) #:method "get" serve-get-src]
+    [("auth" "signin") #:method "get" serve-signin]
+    [("auth" "signup") #:method "get" serve-signup]
+    [("auth" "signoff") #:method "get" serve-signoff]
+    [("profile" (string-arg)) #:method "get" serve-profile]
+    [("explore") #:method "get" serve-explore]
+    [("edit") #:method "post" serve-edit]
+    [("") serve-default]))
 
 (define (start req)
   (do-dispatch req))
