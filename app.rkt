@@ -182,10 +182,13 @@ EOF
                                                 [value "Fork Paste"]))))
                           '())
                       ,@(if (can-write-paste? paste session-user)
-                          (list `(p (button ([class "btn btn-default"]
-                                             [data-toggle "modal"]
-                                             [data-target "#edit-modal"])
-                                            "Edit")))
+                          (list `(form  ([method "get"] [action "/edit"])
+                                        (input ([type "hidden"]
+                                                [name "url"]
+                                                [value ,name]))
+                                        (input ([type "submit"]
+                                                [class "btn btn-default"]
+                                                [value "Edit Paste"]))))
                           `())
                       (p ,@(social-buttons (get-paste-url (paste-url paste))))))
             (div ([class "col-md-9"])
@@ -196,43 +199,8 @@ EOF
                               (width "100%")
                               (height "85%")
                               (frameborder "0")])
-                    "Paste is not compiled yet! Try again in few seconds"))
-            ,(get-edit-dialog paste)))))
+                    "Paste is not compiled yet! Try again in few seconds"))))))
 
-(define (get-edit-dialog paste)
-  `(div ([class "modal fade"] [id "edit-modal"])
-        (div ([class "modal-dialog"])
-             (div ([class "modal-content"])
-                  (div ([class "modal-header"])
-                       (button ([type "button"]
-                                [class "close"]
-                                [data-dismiss "modal"]
-                                [aria-label "Close"])
-                               (span ([aria-hidden "true"]) times))
-                       (h4 "Edit paste title and description"))
-                  (div ([class "modal-body"])
-                       (form ([id "edit-form"] [action "/edit"] [method "post"])
-                             (input ([type "hidden"]
-                                     [name "paste-url"]
-                                     [value ,(paste-url paste)]))
-                             (input ([type "text"]
-                                     [name "title"]
-                                     [class "form-control"]
-                                     [placeholder "Title"]
-                                     [value ,(paste-title paste)])) (br)
-                             (textarea ([name "descp"]
-                                        [class "form-control"]
-                                        [placeholder "Description"]
-                                        [rows "3"] [style "resize: vertical"])
-                                       ,(paste-descp paste))))
-                  (div ([class "modal-footer"])
-                       (button ([type "button"]
-                                [class "btn btn-default"]
-                                [data-dismiss "modal"]) "Close")
-                       (button ([type "button"]
-                                [class "btn btn-primary"]
-                                [onclick "$('#edit-form').submit()"])
-                               "Save changes"))))))
 
 ; serve-get-src : Request Name -> Response
 (define/session-handler (serve-get-src req name)
@@ -268,17 +236,19 @@ EOF
                                                 [value "Fork Paste"]))))
                           '())
                      ,@(if (can-write-paste? paste session-user)
-                          (list `(p (button ([class "btn btn-default"]
-                                             [data-toggle "modal"]
-                                             [data-target "#edit-modal"])
-                                            "Edit")))
+                          (list `(form  ([method "get"] [action "/edit"])
+                                        (input ([type "hidden"]
+                                                [name "url"]
+                                                [value ,name]))
+                                        (input ([type "submit"]
+                                                [class "btn btn-default"]
+                                                [value "Edit Paste"]))))
                           `())
                      (p ,@(social-buttons (get-paste-url (paste-url paste))))))
            (div ([class "col-md-9"])
                 (pre
                   (code ([class "scheme"])
-                    (paste-source ,(port->string (paste-source paste))))))
-           ,(get-edit-dialog paste))
+                    (paste-source ,(port->string (paste-source paste)))))))
         #:head-hooks (list `(script ([src "/highlight.pack.js"]))
                            `(link ([rel "stylesheet"]
                                    [href "/github.css"]))
@@ -286,10 +256,11 @@ EOF
     (response/message session-user "Paste not found!")))
 
 ; serve-edit : Request -> Response
-(define/session-handler (serve-edit req)
-  (define url (extract-binding/single 'paste-url (request-bindings req)))
+(define/session-handler (serve-edit-save req)
+  (define url (extract-binding/single 'url (request-bindings req)))
   (define title (extract-binding/single 'title (request-bindings req)))
   (define descp (extract-binding/single 'descp (request-bindings req))) 
+  (define source (extract-binding/single 'source (request-bindings req))) 
   (define paste (get-paste-by-name url))
   (define session-user (get-session-username))
   (when (can-write-paste? paste session-user)
@@ -303,7 +274,8 @@ EOF
                   (paste-userid paste)
                   (paste-views paste)
                   (paste-private? paste)
-                  (paste-compiler-error? paste))))
+                  (paste-compiler-error? paste))
+      source))
 
   (redirect-to (get-paste-url (paste-url paste))))
 
@@ -348,7 +320,6 @@ EOF
 
 ; serve-default : Request -> Response
 (define/session-handler (serve-default req)
-  (define session-user (get-session-username))
   (define bindings (request-bindings req))
   (define-values (title descp source)
                  (cond
@@ -361,12 +332,33 @@ EOF
                       (values "" "" STARTER-TEMPLATE-CODE))]
                    [else (values "" "" STARTER-TEMPLATE-CODE)]))
   (response/xexpr
-    (page-template
-      ""
-      session-user
+    (get-paste-edit-xexpr "new" title descp source "/upload")))
+
+; serve-edit : Request -> Response
+(define/session-handler (serve-edit req)
+  (define bindings (request-bindings req))
+  (define-values (url title descp source)
+                 (cond
+                   [(exists-binding? 'url bindings)
+                    (define url (extract-binding/single 'url bindings))
+                    (define paste (get-paste-by-name url))
+                    (if (can-access-paste? paste (get-session-username))
+                      (values url
+                              (paste-title paste)
+                              (paste-descp paste)
+                              (port->string (paste-source paste)))
+                      (values #f "" "" STARTER-TEMPLATE-CODE))]
+                   [else (values #f "" "" STARTER-TEMPLATE-CODE)]))
+  (response/xexpr
+    (get-paste-edit-xexpr (format "edit ~a" url) title descp source "/edit-save" url)))
+
+(define (get-paste-edit-xexpr page-title title descp source action [paste-url #f])
+  (page-template
+      page-title
+      (get-session-username)
       `(div ([class "row"])
             (div ([class "col-md-9"])
-                 (form ([action "/upload"] [method "post"] [id "paste-form"])
+                 (form ([action ,action] [method "post"] [id "paste-form"])
                        (input ([type "text"] [name "title"] [class "form-control"] [placeholder "Title"] [value ,title]))
                        (br)
                        (textarea ([name "descp"] [class "form-control"] [placeholder "Description"] [rows "3"] [style "resize: vertical"]) ,descp)
@@ -376,6 +368,9 @@ EOF
                        (br)
                        (label (input ([type "checkbox"] [name "private"])) "Private Source?")
                        nbsp nbsp nbsp
+                       ,@(if paste-url
+                           (list `(input ([type "hidden"] [name "url"] [value ,paste-url])))
+                           `())
                        (input ([type "submit"] [class "btn btn-default"]))))
             (div ([class "col-md-3"])
                  (h4 "recent pastes")
@@ -393,8 +388,7 @@ EOF
       #:head-hooks (list `(script ([src "https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.3.0/codemirror.min.js"]))
                          `(script ([src "https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.3.0/mode/scheme/scheme.min.js"]))
                          `(link ([rel "stylesheet"]
-                                 [href "https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.3.0/codemirror.min.css"]))
-                         ))))
+                                 [href "https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.3.0/codemirror.min.css"])))))
 
 ; serve-signup : Request -> Response
 (define/session-handler (serve-signup req)
@@ -577,7 +571,8 @@ EOF
     [("auth" "signoff") #:method "get" serve-signoff]
     [("profile" (string-arg)) #:method "get" serve-profile]
     [("explore") #:method "get" serve-explore]
-    [("edit") #:method "post" serve-edit]
+    [("edit") #:method "get" serve-edit]
+    [("edit-save") #:method "post" serve-edit-save]
     [("") serve-default]))
 
 (define (start req)

@@ -49,7 +49,8 @@
     url))
 
 ; paste-save! : Paste -> Void
-(define (paste-save! paste)
+(define (paste-save! paste source)
+  (define source/utf-8 (string->bytes/utf-8 source))
   (query-exec
     DB-CONN
     (format  #<<EOF
@@ -71,7 +72,14 @@ EOF
     (paste-views paste)
     (paste-private? paste)
     (paste-compiler-error? paste)
-    (paste-id paste)))
+    (paste-id paste))
+  (when (not (equal? source/utf-8 (port->bytes (paste-source paste))))
+    (query-exec
+      DB-CONN
+      (format "INSERT INTO ~a (paste_id) VALUES (?)" TABLE-WORKER)
+      (get-paste-id (paste-url paste)))
+    (repo-put! REPO-SOURCE (paste-url paste) source/utf-8)
+    (compile-source (paste-url paste))))
 
 ; get-paste : Name -> Maybe<Paste>
 (define (get-paste-by-name url)
