@@ -167,11 +167,15 @@ EOF
                       (p (h3 ,(paste-title paste))
                         ,(paste-descp paste))
                       (p ([class "paste-meta"]) 
-                        "Paste #" ,(paste-url paste) (br)
+                        "Paste #" ,(paste-url paste) ,@(if (paste-private? paste)
+                                                         (list 'nbsp "(private)")
+                                                         (list))
+                        (br)
                         ,(number->string (paste-views paste)) " hits" (br)
                         ,@(if paste-user
                             (list "Uploaded by " `(a ([href ,(profile-url paste-user)]) ,paste-user))
                             '())
+                        (br)
                         ,@(parameterize ([date-display-format 'iso-8601]) ;;TODO also show time, not just date
                            (list  '(br)
                                   "Updated: " (date->string (paste-last-ts paste))
@@ -226,11 +230,15 @@ EOF
                      (p (h3 ,(paste-title paste))
                         ,(paste-descp paste))
                      (p ([class "paste-meta"]) 
-                        "Paste #" ,(paste-url paste) (br)
+                        "Paste #" ,(paste-url paste) ,@(if (paste-private? paste)
+                                                         (list 'nbsp "(private)")
+                                                         (list))
+                        (br)
                         ,(number->string (paste-views paste)) " hits" (br)
                         ,@(if paste-user
                             (list "Uploaded by " `(a ([href ,(profile-url paste-user)]) ,paste-user))
                             '())
+                        (br)
                         ,@(parameterize ([date-display-format 'iso-8601]) ;;TODO also show time, not just date
                            (list  '(br)
                                   "Updated: " (date->string (paste-last-ts paste))
@@ -271,6 +279,7 @@ EOF
   (define title (extract-binding/single 'title (request-bindings req)))
   (define descp (extract-binding/single 'descp (request-bindings req))) 
   (define source (extract-binding/single 'source (request-bindings req))) 
+  (define private? (extract-binding/single 'private (request-bindings req))) 
   (define paste (get-paste-by-name url))
   (define session-user (get-session-username))
   (when (can-write-paste? paste session-user)
@@ -283,7 +292,7 @@ EOF
                   (current-date)
                   (paste-userid paste)
                   (paste-views paste)
-                  (paste-private? paste)
+                  private?
                   (paste-compiler-error? paste))
       source))
 
@@ -342,12 +351,12 @@ EOF
                       (values "" "" STARTER-TEMPLATE-CODE))]
                    [else (values "" "" STARTER-TEMPLATE-CODE)]))
   (response/xexpr
-    (get-paste-edit-xexpr "new" title descp source "/upload")))
+    (get-paste-edit-xexpr "new" title descp source #f "/upload")))
 
 ; serve-edit : Request -> Response
 (define/session-handler (serve-edit req)
   (define bindings (request-bindings req))
-  (define-values (url title descp source)
+  (define-values (url title descp private? source)
                  (cond
                    [(exists-binding? 'url bindings)
                     (define url (extract-binding/single 'url bindings))
@@ -356,13 +365,14 @@ EOF
                       (values url
                               (paste-title paste)
                               (paste-descp paste)
+                              (paste-private? paste)
                               (port->string (paste-source paste)))
-                      (values #f "" "" STARTER-TEMPLATE-CODE))]
-                   [else (values #f "" "" STARTER-TEMPLATE-CODE)]))
+                      (values #f "" "" #f STARTER-TEMPLATE-CODE))]
+                   [else (values #f "" "" #f STARTER-TEMPLATE-CODE)]))
   (response/xexpr
-    (get-paste-edit-xexpr (format "edit ~a" url) title descp source "/edit-save" url)))
+    (get-paste-edit-xexpr (format "edit ~a" url) title descp source private? "/edit-save" url)))
 
-(define (get-paste-edit-xexpr page-title title descp source action [paste-url #f])
+(define (get-paste-edit-xexpr page-title title descp source private? action [paste-url #f])
   (page-template
       page-title
       (get-session-username)
@@ -376,7 +386,7 @@ EOF
                        (textarea ([style "font-family: monosapce;"] [cols "80"] [rows "25"] [name "source"] [class "form-control"] [id "source"])
                                  ,source)
                        (br)
-                       (label (input ([type "checkbox"] [name "private"])) "Private Source?")
+                       (label (input ([type "checkbox"] [name "private"] ,@(if private? '([checked ""]) '()))) "Private Source?")
                        nbsp nbsp nbsp
                        ,@(if paste-url
                            (list `(input ([type "hidden"] [name "url"] [value ,paste-url])))
