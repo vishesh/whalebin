@@ -31,6 +31,21 @@
 
 (define-struct paste (id url title descp create-ts last-ts userid views private? compiler-error?) #:transparent)
 
+(define PASTE-ROW-NAMES #(id url title descp create_ts last_ts user_id views private compiler_error))
+
+(define (result->paste result)
+  (define rh (make-immutable-hash (vector->list result)))
+  (make-paste (hash-ref rh 'id)
+              (hash-ref rh 'url)
+              (hash-ref rh 'title)
+              (hash-ref rh 'descp)
+              (sql-datetime->srfi-date (hash-ref rh 'create_ts))
+              (sql-datetime->srfi-date (hash-ref rh 'last_ts))
+              (hash-ref rh 'user_id)
+              (hash-ref rh 'views)
+              (hash-ref rh 'private )
+              (hash-ref rh 'compiler_error)))
+
 ; random-name : Integer -> Name
 ; Returns a random name using random-string that has not been used by any
 ; paste. Wont halt if all names ore consumed, so choose a reasonable len
@@ -89,7 +104,7 @@ EOF
       (format "SELECT id, url, title, descp, create_ts, last_ts, user_id, views, private, compiler_error FROM ~a WHERE url = ?" TABLE-PASTES)
       url))
   (and result
-       (apply make-paste (vector->list result))))
+       (result->paste (vector-map cons PASTE-ROW-NAMES result))))
 
 (define (get-paste-by-id id)
   (define result 
@@ -98,7 +113,7 @@ EOF
       (format "SELECT id, url, title, descp, create_ts, last_ts, user_id, views, private, compiler_error FROM ~a WHERE id = ?" TABLE-PASTES)
       id))
   (and result
-       (apply make-paste (vector->list result))))
+       (result->paste (vector-map cons PASTE-ROW-NAMES result))))
 
 ; paste-exists? : Name -> Boolean
 (define (paste-exists? url)
@@ -122,7 +137,9 @@ EOF
     (query-rows
       DB-CONN
       (format "SELECT id, url, title, descp, create_ts, last_ts, user_id, views, private, compiler_error FROM ~a ORDER BY create_ts DESC LIMIT ?" TABLE-PASTES) n))
-  (map (lambda (x) (apply make-paste (vector->list x))) results))
+  (map (lambda (x)
+         (result->paste (vector-map cons PASTE-ROW-NAMES x)))
+       results))
 
 ; get-recent-pastes : Integer -> ListOf<Paste>
 ; Get n most viewed pastes
@@ -131,7 +148,9 @@ EOF
     (query-rows
       DB-CONN
       (format "SELECT id, url, title, descp, create_ts, last_ts, user_id, views, private, compiler_error FROM ~a ORDER BY views DESC LIMIT ?" TABLE-PASTES) n))
-  (map (lambda (x) (apply make-paste (vector->list x))) results))
+  (map (lambda (x)
+         (result->paste (vector-map cons PASTE-ROW-NAMES x)))
+       results))
 
 ; paste-output-ready? : Paste -> Boolean
 ; WHERE: (paste-exists? name) is true
@@ -181,7 +200,9 @@ EOF
       DB-CONN
       (format "SELECT id, url, title, descp, create_ts, last_ts, user_id, views, private, compiler_error FROM ~a WHERE user_id = ? ORDER BY create_ts DESC" TABLE-PASTES)
       userid))
-  (map (lambda (x) (apply make-paste (vector->list x))) results))
+  (map (lambda (x)
+         (result->paste (vector-map cons PASTE-ROW-NAMES x)))
+       results))
 
 ; check-error-report : Name String -> Void
 (define (check-error-report name r)

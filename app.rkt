@@ -153,8 +153,8 @@ EOF
   (define paste (get-paste-by-name name))
   (define session-user (get-session-username))
   (define paste-user (if (number? (paste-userid paste)) ;fixme
-                     (get-username-by-id (paste-userid paste))
-                     #f))
+                       (get-username-by-id (paste-userid paste))
+                       #f))
   (response/xexpr
     (page-template
       (paste-friendly-title paste)
@@ -171,7 +171,12 @@ EOF
                         ,(number->string (paste-views paste)) " hits" (br)
                         ,@(if paste-user
                             (list "Uploaded by " `(a ([href ,(profile-url paste-user)]) ,paste-user))
-                            '()))
+                            '())
+                        ,@(parameterize ([date-display-format 'iso-8601]) ;;TODO also show time, not just date
+                           (list  '(br)
+                                  "Updated: " (date->string (paste-last-ts paste))
+                                  '(br)
+                                  "Created: " (date->string (paste-create-ts paste)))))
                       ,@(if (can-access-paste? paste session-user)
                           (list `(form  ([method "get"] [action "/"])
                                         (input ([type "hidden"]
@@ -225,7 +230,12 @@ EOF
                         ,(number->string (paste-views paste)) " hits" (br)
                         ,@(if paste-user
                             (list "Uploaded by " `(a ([href ,(profile-url paste-user)]) ,paste-user))
-                            '()))
+                            '())
+                        ,@(parameterize ([date-display-format 'iso-8601]) ;;TODO also show time, not just date
+                           (list  '(br)
+                                  "Updated: " (date->string (paste-last-ts paste))
+                                  '(br)
+                                  "Created: " (date->string (paste-create-ts paste)))))
                       ,@(if (can-access-paste? paste session-user)
                           (list `(form  ([method "get"] [action "/"])
                                         (input ([type "hidden"]
