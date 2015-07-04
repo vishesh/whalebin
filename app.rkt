@@ -60,7 +60,6 @@ EOF
     #f
     (equal? (get-user-id username) (paste-userid paste))))
 
-
 ; string -> xexpr?
 ; xexpr for header which includes navbar
 (define (header-template username)

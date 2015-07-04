@@ -15,6 +15,10 @@
          paste-exists?
          paste-source
          paste-web-output
+         paste-starred-by-user?
+         paste-star-by-user
+         paste-unstar-by-user
+         paste-star-counts
          get-paste-by-name
          get-recent-pastes
          get-most-viewed-pastes
@@ -153,13 +157,44 @@ EOF
        results))
 
 ; paste-output-ready? : Paste -> Boolean
-; WHERE: (paste-exists? name) is true
 ; Returns true if the program has compiled and is ready to be fetched
 (define (paste-output-ready? paste)
   (not (query-maybe-value
          DB-CONN
          (format "SELECT paste_id FROM ~a WHERE paste_id = ?" TABLE-WORKER)
          (paste-id paste))))
+
+; paste-star-counts : Paste -> PosInt
+(define (paste-star-counts paste)
+  (query-maybe-value
+    DB-CONN
+    (format "SELECT COUNT(*) FROM ~a WHERE paste_id = ?" TABLE-STARS)
+    (paste-id paste)))
+
+(define (paste-starred-by-user? paste user_id)
+  (not (false? (query-maybe-value
+                 DB-CONN
+                 (format "SELECT FROM ~a WHERE paste_id =? AND user_id =?" TABLE-STARS)
+                 (paste-id paste)
+                 user_id))))
+
+(define (paste-star-by-user paste user_id)
+  (call-with-transaction
+    DB-CONN
+    (λ ()
+      (when (not (paste-starred-by-user? paste user_id))
+        (query-exec
+          DB-CONN
+          (format "INSERT INTO ~a (user_id paste_id) VALUES (? ?)" TABLE-STARS)
+          (paste-id paste)
+          user_id)))))
+
+(define (paste-unstar-by-user paste user_id)
+  (query-exec
+    DB-CONN
+    (format "DELETE FROM ~a WHERE paste_id = ? AND user_id = ?" TABLE-STARS)
+    (paste-id paste)
+    user_id))
 
 ; create-paste! : Name bytes -> Void
 ; TODO: put both queries in transaction

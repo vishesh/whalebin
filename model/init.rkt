@@ -9,6 +9,7 @@
 (define TABLE-WORKER "worker_queue")
 (define TABLE-USERS "users")
 (define TABLE-SESSIONS "sessions")
+(define TABLE-STARS "stars")
 
 ; TODO: use connection pool
 ; http://docs.racket-lang.org/db/using-db.html#%28part._intro-servlets%29
@@ -60,4 +61,15 @@
   (unless (table-exists? DB-CONN TABLE-WORKER)
     (query-exec DB-CONN
              (format "CREATE TABLE ~a (paste_id INTEGER NOT NULL);"
-                     TABLE-WORKER))))
+                     TABLE-WORKER)))
+  (unless (table-exists? DB-CONN TABLE-STARS)
+    (query-exec DB-CONN
+                (format "CREATE TABLE ~a (
+                           id INTEGER PRIMARY KEY NOT NULL AUTO_INCREMENT,
+                           paste_id INTEGER NOT NULL,
+                           user_id INTEGER NOT NULL,
+                           ts TIMESTAMP DEDFAULT CURRENT_TIMESTAMP,
+                           FOREIGN KEY (paste_id) REFERENCES ~a (id),
+                           FOREIGN KEY (user_id) REFERENCES ~a (id),
+                           UNIQUE (paste_id, user_id)
+                        );" TABLE-STARS TABLE-PASTES TABLE-USERS))))
