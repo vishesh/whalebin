@@ -5,7 +5,8 @@
          web-server/http/id-cookie
          web-server/servlet/web
          web-server/servlet-env
-         web-server/dispatch)
+         web-server/dispatch
+         racket/date)
 (require "model.rkt"
          "config.rkt"
          "web.rkt")
@@ -297,7 +298,8 @@ EOF
                   (paste-url paste)
                   title
                   descp
-                  (paste-ts paste)
+                  (paste-create-ts paste)
+                  (current-date)
                   (paste-userid paste)
                   (paste-views paste)
                   (paste-private? paste)

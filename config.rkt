@@ -1,5 +1,8 @@
 #lang racket
 
+(require (only-in web-server/http/id-cookie
+                  make-secret-salt/file))
+
 (provide (all-defined-out))
 
 ; Constants
@@ -16,6 +19,6 @@
 (define DB-NAME "bigbang")
 
 (define SESSION-COOKIE-NAME "session") 
-(define SESSION-COOKIE-SALT #"abcdefgijklmonp")
+(define SESSION-COOKIE-SALT (make-secret-salt/file "SESSION-SALT"))
 
 (define STATIC-FILES-DIR "/home/vishesh/racket/whalebin/static")

@@ -1,6 +1,7 @@
 #lang racket
 
 (require db
+         db/util/datetime
          xml
          whalesong/whalesong-helpers 
          whalesong/parameters
@@ -22,21 +23,13 @@
          finish-compile
          paste-views-add1
          get-user-pastes
-         paste-url
-         paste-id
-         paste-title
-         paste-ts
-         paste-userid
-         paste-views
-         paste-compiler-error?
-         paste-descp
-         paste-private?
+         (struct-out paste)
          make-paste
          paste-save!)
 
 ; Name is [a-zA-Z0-9]+
 
-(define-struct paste (id url title descp ts userid views private? compiler-error?) #:transparent)
+(define-struct paste (id url title descp create-ts last-ts userid views private? compiler-error?) #:transparent)
 
 ; random-name : Integer -> Name
 ; Returns a random name using random-string that has not been used by any
@@ -63,7 +56,7 @@
              UPDATE ~a SET
                 title = ?,
                 descp = ?,
-                ts = ?,
+                last_ts = ?,
                 user_id = ?,
                 views = ?,
                 private = ?,
@@ -73,7 +66,7 @@ EOF
     TABLE-PASTES)
     (paste-title paste)
     (paste-descp paste) 
-    (paste-ts paste)
+    (srfi-date->sql-timestamp (paste-last-ts paste))
     (paste-userid paste)
     (paste-views paste)
     (paste-private? paste)
@@ -85,7 +78,7 @@ EOF
   (define result 
     (query-maybe-row
       DB-CONN
-      (format "SELECT id, url, title, descp, ts, user_id, views, private, compiler_error FROM ~a WHERE url = ?" TABLE-PASTES)
+      (format "SELECT id, url, title, descp, create_ts, last_ts, user_id, views, private, compiler_error FROM ~a WHERE url = ?" TABLE-PASTES)
       url))
   (and result
        (apply make-paste (vector->list result))))
@@ -94,7 +87,7 @@ EOF
   (define result 
     (query-maybe-row
       DB-CONN
-      (format "SELECT id, url, title, descp, ts, user_id, views, private, compiler_error FROM ~a WHERE id = ?" TABLE-PASTES)
+      (format "SELECT id, url, title, descp, create_ts, last_ts, user_id, views, private, compiler_error FROM ~a WHERE id = ?" TABLE-PASTES)
       id))
   (and result
        (apply make-paste (vector->list result))))
@@ -120,7 +113,7 @@ EOF
   (define results
     (query-rows
       DB-CONN
-      (format "SELECT id, url, title, descp, ts, user_id, views, private, compiler_error FROM ~a ORDER BY ts DESC LIMIT ?" TABLE-PASTES) n))
+      (format "SELECT id, url, title, descp, create_ts, last_ts, user_id, views, private, compiler_error FROM ~a ORDER BY create_ts DESC LIMIT ?" TABLE-PASTES) n))
   (map (lambda (x) (apply make-paste (vector->list x))) results))
 
 ; get-recent-pastes : Integer -> ListOf<Paste>
@@ -129,7 +122,7 @@ EOF
   (define results
     (query-rows
       DB-CONN
-      (format "SELECT id, url, title, descp, ts, user_id, views, private, compiler_error FROM ~a ORDER BY views DESC LIMIT ?" TABLE-PASTES) n))
+      (format "SELECT id, url, title, descp, create_ts, last_ts, user_id, views, private, compiler_error FROM ~a ORDER BY views DESC LIMIT ?" TABLE-PASTES) n))
   (map (lambda (x) (apply make-paste (vector->list x))) results))
 
 ; paste-output-ready? : Paste -> Boolean
@@ -178,7 +171,7 @@ EOF
   (define results
     (query-rows
       DB-CONN
-      (format "SELECT id, url, title, descp, ts, user_id, views, private, compiler_error FROM ~a WHERE user_id = ? ORDER BY ts DESC" TABLE-PASTES)
+      (format "SELECT id, url, title, descp, create_ts, last_ts, user_id, views, private, compiler_error FROM ~a WHERE user_id = ? ORDER BY create_ts DESC" TABLE-PASTES)
       userid))
   (map (lambda (x) (apply make-paste (vector->list x))) results))
 
