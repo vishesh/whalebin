@@ -521,7 +521,11 @@ EOF
               (div ([class "col-md-4"])
                    (h3 "recent pastes")
                    (ul ([class "list-unstyled"])
-                       ,@(map paste->xexpr (get-recent-pastes 50)))))))))
+                       ,@(map paste->xexpr (get-recent-pastes 50))))
+              (div ([class "col-md-4"])
+                   (h3 "top starred pastes")
+                   (ul ([class "list-unstyled"])
+                       ,@(map paste->xexpr (get-top-starred-pastes 50)))))))))
 
 (define/session-handler (serve-star-state req url)
   (define session-user (get-session-username))
