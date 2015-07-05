@@ -68,7 +68,7 @@
                            id INTEGER PRIMARY KEY NOT NULL AUTO_INCREMENT,
                            paste_id INTEGER NOT NULL,
                            user_id INTEGER NOT NULL,
-                           ts TIMESTAMP DEDFAULT CURRENT_TIMESTAMP,
+                           ts TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                            FOREIGN KEY (paste_id) REFERENCES ~a (id),
                            FOREIGN KEY (user_id) REFERENCES ~a (id),
                            UNIQUE (paste_id, user_id)

@@ -171,30 +171,35 @@ EOF
     (format "SELECT COUNT(*) FROM ~a WHERE paste_id = ?" TABLE-STARS)
     (paste-id paste)))
 
-(define (paste-starred-by-user? paste user_id)
-  (not (false? (query-maybe-value
-                 DB-CONN
-                 (format "SELECT FROM ~a WHERE paste_id =? AND user_id =?" TABLE-STARS)
-                 (paste-id paste)
-                 user_id))))
+(define (paste-starred-by-user? paste user-id)
+  (and user-id
+       (not 
+         (false?
+           (query-maybe-value
+             DB-CONN
+             (format "SELECT id FROM ~a WHERE paste_id = ? AND user_id = ?" TABLE-STARS)
+             (paste-id paste)
+             user-id)))))
 
 (define (paste-star-by-user paste user_id)
-  (call-with-transaction
-    DB-CONN
-    (λ ()
-      (when (not (paste-starred-by-user? paste user_id))
-        (query-exec
-          DB-CONN
-          (format "INSERT INTO ~a (user_id paste_id) VALUES (? ?)" TABLE-STARS)
-          (paste-id paste)
-          user_id)))))
+  (when user_id
+    (call-with-transaction
+      DB-CONN
+      (λ ()
+        (when (not (paste-starred-by-user? paste user_id))
+          (query-exec
+            DB-CONN
+            (format "INSERT INTO ~a (paste_id, user_id) VALUES (?, ?)" TABLE-STARS)
+            (paste-id paste)
+            user_id))))))
 
 (define (paste-unstar-by-user paste user_id)
-  (query-exec
-    DB-CONN
-    (format "DELETE FROM ~a WHERE paste_id = ? AND user_id = ?" TABLE-STARS)
-    (paste-id paste)
-    user_id))
+  (when user_id
+    (query-exec
+      DB-CONN
+      (format "DELETE FROM ~a WHERE paste_id = ? AND user_id = ?" TABLE-STARS)
+      (paste-id paste)
+      user_id)))
 
 ; create-paste! : Name bytes -> Void
 ; TODO: put both queries in transaction

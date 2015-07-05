@@ -160,6 +160,7 @@ EOF
       session-user
       `(div ([class "row"])
             (div ([class "col-md-3"])
+                 (p ([id "favorite"] [data-url ,(paste-url paste)]))
                  (div ([style "font-size: 120%"])
                       (p (a ([href ,(get-paste-source-url (paste-url paste))] [class "btn btn-default"]) "Source") nbsp nbsp nbsp
                          (a ([href ,(get-paste-full-url (paste-url paste))] [class "btn btn-default"]) "Fullscreen"))
@@ -207,7 +208,8 @@ EOF
                               (width "100%")
                               (height "85%")
                               (frameborder "0")])
-                    "Paste is not compiled yet! Try again in few seconds"))))))
+                    "Paste is not compiled yet! Try again in few seconds")))
+      #:head-hooks (list `(script ([src "/favorite.js"]))))))
 
 
 ; serve-get-src : Request Name -> Response
@@ -224,6 +226,7 @@ EOF
         session-user
         `(div ([class "row"])
            (div ([class "col-md-3"])
+                (p ([id "favorite"] [data-url ,(paste-url paste)]))
                 (div ([style "font-size: 120%"])
                      (p (a ([href ,(get-paste-url (paste-url paste))] [class "btn btn-default"]) "Execute"))
                      (p (h3 ,(paste-title paste))
@@ -267,6 +270,7 @@ EOF
                   (code ([class "scheme"])
                     (paste-source ,(port->string (paste-source paste)))))))
         #:head-hooks (list `(script ([src "/highlight.pack.js"]))
+                           `(script ([src "/favorite.js"]))
                            `(link ([rel "stylesheet"]
                                    [href "/github.css"]))
                            `(script "hljs.initHighlightingOnLoad();"))))
@@ -519,6 +523,43 @@ EOF
                    (ul ([class "list-unstyled"])
                        ,@(map paste->xexpr (get-recent-pastes 50)))))))))
 
+(define/session-handler (serve-star-state req url)
+  (define session-user (get-session-username))
+  (define session-userid (and session-user
+                              (get-user-id session-user)))
+  (response/jsexpr
+    (hash 'starred (and session-userid
+                       (paste-starred-by-user?
+                         (get-paste-by-name url)
+                         session-userid))
+          'count (paste-star-counts (get-paste-by-name url)))))
+
+(define/session-handler (serve-star-set req url)
+  (define session-user (get-session-username))
+  (define session-userid (and session-user
+                              (get-user-id session-user)))
+  (define paste (get-paste-by-name url))
+  (paste-star-by-user paste session-userid)
+  (response/jsexpr
+    (hash 'starred (and session-userid
+                       (paste-starred-by-user?
+                         (get-paste-by-name url)
+                         session-userid))
+          'count (paste-star-counts (get-paste-by-name url)))))
+
+(define/session-handler (serve-star-unset req url)
+  (define session-user (get-session-username))
+  (define session-userid (and session-user
+                              (get-user-id session-user)))
+  (define paste (get-paste-by-name url))
+  (paste-unstar-by-user paste session-userid)
+  (response/jsexpr
+    (hash 'starred (and session-userid
+                       (paste-starred-by-user?
+                         (get-paste-by-name url)
+                         session-userid))
+          'count (paste-star-counts (get-paste-by-name url)))))
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;
@@ -588,6 +629,9 @@ EOF
     [("auth" "signin") #:method "get" serve-signin]
     [("auth" "signup") #:method "get" serve-signup]
     [("auth" "signoff") #:method "get" serve-signoff]
+    [("ajax" "star" "state" (string-arg)) #:method "get" serve-star-state]
+    [("ajax" "star" "set" (string-arg)) #:method "get" serve-star-set]
+    [("ajax" "star" "unset" (string-arg)) #:method "get" serve-star-unset]
     [("profile" (string-arg)) #:method "get" serve-profile]
     [("explore") #:method "get" serve-explore]
     [("edit") #:method "get" serve-edit]
