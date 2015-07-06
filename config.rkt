@@ -22,3 +22,8 @@
 (define SESSION-COOKIE-SALT (make-secret-salt/file "SESSION-SALT"))
 
 (define STATIC-FILES-DIR "/home/vishesh/racket/whalebin/static")
+
+; elasticsearch settings
+(define INDEX-NAME "whalebin")
+(define DOCUMENT-NAME "paste")
+(define ES-HOST "localhost")

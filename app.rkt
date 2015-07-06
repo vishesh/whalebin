@@ -6,12 +6,16 @@
          web-server/servlet/web
          web-server/servlet-env
          web-server/dispatch
-         racket/date)
-(require "model.rkt"
+         (prefix-in es: elasticsearch)
+         racket/date
+         "model.rkt"
          "config.rkt"
-         "web.rkt")
+         "web.rkt"
+         "utils.rkt"
+         "search.rkt")
 
 (define MIME-PLAIN-TEXT #"text/plain")
+(define ES-CLIENT es:DEFAULT-CLIENT)
 
 (define STARTER-TEMPLATE-CODE
 #<<EOF
@@ -72,6 +76,9 @@ EOF
                       (li (a ([href "/"]) "New"))
                       (li (a ([href "/explore"]) "Explore")))
                   (ul ([class "nav navbar-nav navbar-right"])
+                      (form ([class "navbar-form navbar-left"] [role "search"] [action "/search"])
+                            (div ([class "form-group"])
+                                 (input ([type "text"] [class "form-control"] [placeholder "Search"] [name "q"]))))
                       ,@(if username
                           (list 
                             `(li (a ([href ,(profile-url username)]) ,username))
@@ -564,6 +571,17 @@ EOF
                          session-userid))
           'count (paste-star-counts (get-paste-by-name url)))))
 
+(define/session-handler (serve-search req)
+  (define q (extract-binding/single 'q (request-bindings req)))
+  (define session-user (get-session-username))
+  (define hits
+    (hash-refs (search-paste q) 'hits 'hits))
+  (response/xexpr
+    (page-template
+      "search"
+      session-user
+      `(div ,@(search-hits->xexpr hits)))))
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;
@@ -640,6 +658,7 @@ EOF
     [("explore") #:method "get" serve-explore]
     [("edit") #:method "get" serve-edit]
     [("edit-save") #:method "post" serve-edit-save]
+    [("search") #:method "get" serve-search]
     [("") serve-default]))
 
 (define (start req)

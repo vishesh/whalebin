@@ -20,6 +20,7 @@
          paste-unstar-by-user
          paste-star-counts
          get-paste-by-name
+         get-all-pastes
          get-recent-pastes
          get-top-starred-pastes
          get-most-viewed-pastes
@@ -244,6 +245,16 @@ EOF
     DB-CONN
     (format "UPDATE ~a SET views = views + 1 WHERE id = ?" TABLE-PASTES)
     (paste-id paste)))
+
+; get-all-pastes : -> ListOf<Paste>
+(define (get-all-pastes)
+  (define result
+    (query-rows
+      DB-CONN
+      (format "SELECT id, url, title, descp, create_ts, last_ts, user_id, views, private, compiler_error FROM ~a" TABLE-PASTES)))
+  (map (λ (x)
+         (result->paste (vector-map cons PASTE-ROW-NAMES x)))
+       result))
 
 ; get-user-pastes : Integer -> ListOf<Name>
 ; Returns list of pastes by user
