@@ -507,10 +507,16 @@ EOF
       (string-append "profile - " username)
       (get-session-username)
       `(div
-        (h2 "profile: " ,username)
-        (div 
-          (ul ([class "list-unstyled"])
-              ,@(map paste->xexpr (get-user-pastes userid))))))))
+         (h2 "profile: " ,username)
+         (div ([class "row"])
+           (div ([class "col-md-4"])
+             (div 
+               (ul ([class "list-unstyled"])
+                 ,@(map paste->xexpr (get-user-pastes userid)))))
+           (div ([class "col-md-4"])
+             (div 
+               (ul ([class "list-unstyled"])
+                 ,@(map paste->xexpr (get-user-starred-pastes userid))))))))))
 
 ; serve-explore : Request -> Response
 (define/session-handler (serve-explore req)

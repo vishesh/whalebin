@@ -23,6 +23,7 @@
          get-all-pastes
          get-recent-pastes
          get-top-starred-pastes
+         get-user-starred-pastes
          get-most-viewed-pastes
          paste-output-ready?
          create-paste!
@@ -166,6 +167,18 @@ EOF
       DB-CONN
       (format "SELECT id, url, title, descp, create_ts, last_ts, user_id, views, private, compiler_error FROM ~a WHERE id IN
               (SELECT paste_id FROM ~a GROUP BY paste_id ORDER BY count(paste_id) DESC) LIMIT ?" TABLE-PASTES TABLE-STARS) n))
+  (map (lambda (x)
+         (result->paste (vector-map cons PASTE-ROW-NAMES x)))
+       results))
+
+; get-user-starred-pastes : UserId -> ListOf<Paste>
+; Get n most viewed pastes
+(define (get-user-starred-pastes userid)
+  (define results
+    (query-rows
+      DB-CONN
+      (format "SELECT id, url, title, descp, create_ts, last_ts, user_id, views, private, compiler_error FROM ~a WHERE id IN
+              (SELECT paste_id FROM ~a WHERE user_id = ? ORDER BY ts DESC)" TABLE-PASTES TABLE-STARS) userid))
   (map (lambda (x)
          (result->paste (vector-map cons PASTE-ROW-NAMES x)))
        results))
