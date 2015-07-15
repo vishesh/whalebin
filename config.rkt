@@ -1,7 +1,8 @@
 #lang racket
 
 (require (only-in web-server/http/id-cookie
-                  make-secret-salt/file))
+                  make-secret-salt/file)
+         (prefix-in es: elasticsearch))
 
 (provide (all-defined-out))
 
@@ -27,3 +28,6 @@
 (define INDEX-NAME "whalebin")
 (define DOCUMENT-NAME "paste")
 (define ES-HOST "localhost")
+
+(define ES-CLIENT es:DEFAULT-CLIENT) ; FIXME: put this in config with app
+

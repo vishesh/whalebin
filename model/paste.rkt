@@ -5,6 +5,7 @@
          xml
          whalesong/whalesong-helpers 
          whalesong/parameters
+         (prefix-in es: elasticsearch)
          "../repo.rkt"
          "../config.rkt"
          "../utils.rkt"
@@ -25,11 +26,13 @@
          get-top-starred-pastes
          get-user-starred-pastes
          get-most-viewed-pastes
+         index-paste
          paste-output-ready?
          create-paste!
          finish-compile
          paste-views-add1
          get-user-pastes
+         paste->es-doc
          (struct-out paste)
          make-paste
          paste-save!)
@@ -101,6 +104,7 @@ EOF
       (format "INSERT INTO ~a (paste_id) VALUES (?)" TABLE-WORKER)
       (get-paste-id (paste-url paste)))
     (repo-put! REPO-SOURCE (paste-url paste) source/utf-8)
+    (index-paste paste)
     (compile-source (paste-url paste))))
 
 ; get-paste : Name -> Maybe<Paste>
@@ -228,6 +232,15 @@ EOF
       (paste-id paste)
       user_id)))
 
+(define (paste->es-doc paste)
+  (hash 'url (paste-url paste)
+        'title (paste-title paste)
+        'description (paste-descp paste)))
+
+(define (index-paste paste)
+  (es:document-index ES-CLIENT INDEX-NAME DOCUMENT-NAME
+                     (paste->es-doc paste)))
+
 ; create-paste! : Name bytes -> Void
 ; TODO: put both queries in transaction
 (define (create-paste! url content #:title [title ""] #:descp [descp ""] #:userid [userid #f] #:private [private #f])
@@ -240,6 +253,7 @@ EOF
     DB-CONN
     (format "INSERT INTO ~a (paste_id) VALUES (?)" TABLE-WORKER)
     (get-paste-id url))
+  (index-paste (get-paste-by-name url))
   (repo-put! REPO-SOURCE url content)
   (compile-source url))
 

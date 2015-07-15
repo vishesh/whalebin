@@ -9,8 +9,6 @@
          search-paste
          index-all)
 
-(define ES-CLIENT es:DEFAULT-CLIENT) ; FIXME: put this in config with app
-
 ;;;FIXME: following functions are duplicated from app.py
 ; get-paste-url : Name -> String
 (define (get-paste-url name)
@@ -46,8 +44,5 @@
 (define (index-all)
   (define pastes (get-all-pastes))
   (for ([paste pastes])
-    (es:document-index ES-CLIENT INDEX-NAME DOCUMENT-NAME
-                       (hash 'url (paste-url paste)
-                             'title (paste-title paste)
-                             'description (paste-descp paste)))))
+    (index-paste paste)))
 

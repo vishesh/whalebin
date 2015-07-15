@@ -15,7 +15,6 @@
          "search.rkt")
 
 (define MIME-PLAIN-TEXT #"text/plain")
-(define ES-CLIENT es:DEFAULT-CLIENT)
 
 (define STARTER-TEMPLATE-CODE
 #<<EOF

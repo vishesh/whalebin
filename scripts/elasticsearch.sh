@@ -30,6 +30,9 @@ curl -XPUT "http://localhost:9200/whalebin" -d'
   },
   "mappings": {
     "paste": {
+      "_id": {
+          "path": "url"
+      },
       "properties": {
         "url": {
             "type": "string",
