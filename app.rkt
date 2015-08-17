@@ -6,8 +6,13 @@
          web-server/servlet/web
          web-server/servlet-env
          web-server/dispatch
+         net/uri-codec
+         (only-in net/url
+                  http-sendrecv/url
+                  string->url)
          (prefix-in es: elasticsearch)
          racket/date
+         json
          "model.rkt"
          "config.rkt"
          "web.rkt"
@@ -36,6 +41,25 @@ EOF
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; 
 ;; Helpers
+
+(define (g-recaptcha-verified? request)
+  (define bindings (request-bindings request))
+  (cond
+    [(exists-binding? 'g-recaptcha-response bindings)
+     (define response-token
+       (extract-binding/single 'g-recaptcha-response bindings)) 
+     (define-values
+       (status headers captcha-success-in)
+       (http-sendrecv/url 
+         (string->url "https://www.google.com/recaptcha/api/siteverify")
+         #:method "POST"
+         #:data (alist->form-urlencoded
+                  (list (cons 'secret RECAPTCHA-SECRET-KEY)
+                        (cons 'response response-token)
+                        (cons 'remoteip (request-client-ip request))))
+         #:headers '("Content-Type: application/x-www-form-urlencoded")))
+     (hash-ref (read-json captcha-success-in) 'success #f)]
+    [else #f]))
 
 ; paste -> string
 ; returns title if available or the paste number for displaying
@@ -101,6 +125,7 @@ EOF
               [href "https://maxcdn.bootstrapcdn.com/bootstrap/3.3.4/css/bootstrap-theme.min.css"])) 
        (script ([src "https://ajax.googleapis.com/ajax/libs/jquery/1.11.2/jquery.min.js"]))
        (script ([src "https://maxcdn.bootstrapcdn.com/bootstrap/3.3.4/js/bootstrap.min.js"]))
+       (script ([src "https://www.google.com/recaptcha/api.js"])) ;; not needed everypage, but well...
        (script ([src "/main.js"]))
        (link ([rel "stylesheet"] [type "text/css"] [href "/main.css"]))
        ,@head-hooks)
@@ -325,7 +350,8 @@ EOF
   (define session-userid (and session-user
                               (get-user-id session-user)))
   (cond
-    [(exists-binding? 'source bindings)
+    [(and (exists-binding? 'source bindings)
+          (g-recaptcha-verified? req))
      (create-paste!
       name
       (string->bytes/utf-8 (extract-binding/single 'source bindings))
@@ -394,6 +420,8 @@ EOF
                        (br)
                        (textarea ([style "font-family: monosapce;"] [cols "80"] [rows "25"] [name "source"] [class "form-control"] [id "source"])
                                  ,source)
+                       (br)
+                       (div ([class "g-recaptcha"] [data-sitekey ,RECAPTCHA-SITE-KEY]))
                        (br)
                        (label (input ([type "checkbox"] [name "private"] ,@(if private? '([checked ""]) '()))) "Private Source?")
                        nbsp nbsp nbsp

@@ -31,3 +31,6 @@
 
 (define ES-CLIENT es:DEFAULT-CLIENT) ; FIXME: put this in config with app
 
+; Google Recaptcha
+#|(define RECAPTCHA-SITE-KEY #f)|#
+#|(define RECAPTCHA-SECRET-KEY #f)|#
