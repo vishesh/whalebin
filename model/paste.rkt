@@ -53,7 +53,7 @@
               (sql-datetime->srfi-date (hash-ref rh 'last_ts))
               (hash-ref rh 'user_id)
               (hash-ref rh 'views)
-              (hash-ref rh 'private )
+              (equal? (hash-ref rh 'private ) 1)
               (hash-ref rh 'compiler_error)))
 
 ; random-name : Integer -> Name
