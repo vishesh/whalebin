@@ -45,7 +45,7 @@
                 (format "CREATE TABLE ~a (
                            id INTEGER PRIMARY KEY NOT NULL AUTO_INCREMENT,
                            url VARCHAR(16) NOT NULL UNIQUE,
-                           title VARCHAR(20) NOT NULL DEFAULT '',
+                           title VARCHAR(48) NOT NULL DEFAULT '',
                            descp VARCHAR (255) NOT NULL DEFAULT '', 
                            create_ts TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                            last_ts TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
