@@ -1,5 +1,6 @@
 #curl -XDELETE "http://localhost:9200/whalebin"
 
+curl -XDELETE "http://localhost:9200/whalebin"
 curl -XPUT "http://localhost:9200/whalebin" -d'
 {
   "settings": {
@@ -14,6 +15,14 @@ curl -XPUT "http://localhost:9200/whalebin" -d'
           "type_table": [
             "# => ALPHA"
           ]
+        },
+        "english_stemmer": {
+            "type": "stemmer",
+            "language": "english"
+        },
+        "english_possessive_stemmer": {
+            "type":       "stemmer",
+            "language":   "possessive_english" 
         }
       },
       "analyzer": {
@@ -22,7 +31,9 @@ curl -XPUT "http://localhost:9200/whalebin" -d'
           "tokenizer": "whitespace",
           "filter": [
             "lowercase",
-            "hashtag_filter"
+            "hashtag_filter",
+            "english_stemmer",
+            "english_possessive_stemmer"
           ]
         }
       }
