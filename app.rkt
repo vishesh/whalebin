@@ -309,11 +309,13 @@ EOF
 
 ; serve-edit : Request -> Response
 (define/session-handler (serve-edit-save req)
-  (define url (extract-binding/single 'url (request-bindings req)))
-  (define title (extract-binding/single 'title (request-bindings req)))
-  (define descp (extract-binding/single 'descp (request-bindings req))) 
-  (define source (extract-binding/single 'source (request-bindings req))) 
-  (define private? (extract-binding/single 'private (request-bindings req))) 
+  (define bindings (request-bindings req))
+  (define url (extract-binding/single 'url bindings))
+  (define title (extract-binding/single 'title bindings))
+  (define descp (extract-binding/single 'descp bindings)) 
+  (define source (extract-binding/single 'source bindings)) 
+  (define private? (and (exists-binding? 'private bindings)
+                        (extract-binding/single 'private bindings)))
   (define paste (get-paste-by-name url))
   (define session-user (get-session-username))
   (when (can-write-paste? paste session-user)
@@ -326,7 +328,7 @@ EOF
                   (current-date)
                   (paste-userid paste)
                   (paste-views paste)
-                  private?
+                  (if private? 1 0)
                   (paste-compiler-error? paste))
       source))
 

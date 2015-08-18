@@ -39,7 +39,14 @@
        (hr))))
 
 (define (search-paste q)
-  (es:query-string ES-CLIENT q #:index INDEX-NAME #:doctype DOCUMENT-NAME))
+  (es:search
+    ES-CLIENT
+    (hash
+      'query (hash
+               'query_string (hash
+                               'fields '("description" "title")
+                               'query q)))
+    #:index INDEX-NAME #:doctype DOCUMENT-NAME))
 
 (define (index-all)
   (define pastes (get-all-pastes))

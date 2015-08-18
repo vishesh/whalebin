@@ -98,13 +98,15 @@ EOF
     (paste-private? paste)
     (paste-compiler-error? paste)
     (paste-id paste))
+  (index-paste paste)
+
+  ;; recompile if source changed
   (when (not (equal? source/utf-8 (port->bytes (paste-source paste))))
     (query-exec
       DB-CONN
       (format "INSERT INTO ~a (paste_id) VALUES (?)" TABLE-WORKER)
       (get-paste-id (paste-url paste)))
     (repo-put! REPO-SOURCE (paste-url paste) source/utf-8)
-    (index-paste paste)
     (compile-source (paste-url paste))))
 
 ; get-paste : Name -> Maybe<Paste>
@@ -239,7 +241,8 @@ EOF
 
 (define (index-paste paste)
   (es:document-index ES-CLIENT INDEX-NAME DOCUMENT-NAME
-                     (paste->es-doc paste)))
+                     (paste->es-doc paste))
+  (es:index-refresh ES-CLIENT))
 
 ; create-paste! : Name bytes -> Void
 ; TODO: put both queries in transaction
