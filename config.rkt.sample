@@ -22,7 +22,7 @@
 (define SESSION-COOKIE-NAME "session") 
 (define SESSION-COOKIE-SALT (make-secret-salt/file "SESSION-SALT"))
 
-(define STATIC-FILES-DIR "/home/vishesh/racket/whalebin/static")
+(define STATIC-FILES-DIR "./static")
 
 ; elasticsearch settings
 (define INDEX-NAME "whalebin")
@@ -32,5 +32,5 @@
 (define ES-CLIENT es:DEFAULT-CLIENT) ; FIXME: put this in config with app
 
 ; Google Recaptcha
-#|(define RECAPTCHA-SITE-KEY #f)|#
-#|(define RECAPTCHA-SECRET-KEY #f)|#
+(define RECAPTCHA-SITE-KEY #f)
+(define RECAPTCHA-SECRET-KEY #f)
