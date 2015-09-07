@@ -32,6 +32,8 @@
 (require whalesong/lang/list)
 
 ;; ... and now your code
+
+;; Press F11 to toggle fullscreen editor
 EOF
 )
 
@@ -439,14 +441,27 @@ EOF
                       var myCodeMirror = CodeMirror.fromTextArea(document.getElementById('source'), {
                         lineNumbers: true,
                         styleActiveLine: true,
-                        matchBrackets: true
+                        matchBrackets: true,
+                        extraKeys: {
+                                "F11": function(cm) {
+                                  cm.setOption("fullScreen", !cm.getOption("fullScreen"));
+                                  $("nav").toggle(!cm.getOption("fullScreen"));
+                                },
+                                "Esc": function(cm) {
+                                  if (cm.getOption("fullScreen")) cm.setOption("fullScreen", false);
+                                  $("nav").toggle(!cm.getOption("fullScreen"));
+                                }
+                        }
                       });  
 EOF
                       ))
       #:head-hooks (list `(script ([src "https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.3.0/codemirror.min.js"]))
+                         `(script ([src "https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.3.0/addon/display/fullscreen.js"]))
                          `(script ([src "https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.3.0/mode/scheme/scheme.min.js"]))
                          `(link ([rel "stylesheet"]
-                                 [href "https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.3.0/codemirror.min.css"])))))
+                                 [href "https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.3.0/codemirror.min.css"]))
+                         `(link ([rel "stylesheet"]
+                                 [href "https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.3.0/addon/display/fullscreen.css"])))))
 
 ; serve-signup : Request -> Response
 (define/session-handler (serve-signup req)
