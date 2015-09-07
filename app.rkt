@@ -77,9 +77,8 @@ EOF
 ; paste username? -> boolean
 (define (can-access-paste? paste username)
   (cond
-    [(or (false? (paste-private? paste)) (equal? (paste-private? paste) 0)) #t]
-    [(false? username) #f]
-    [else (equal? (get-user-id username) (paste-userid paste))]))
+    [(and username (equal? (get-user-id username) (paste-userid paste))) #t]  
+    [else (not (paste-private? paste))]))
 
 ; paste username -> boolean
 (define (can-write-paste? paste username)
@@ -141,7 +140,7 @@ EOF
        (a ([href ,(get-paste-url (paste-url paste))])
           ,(paste-friendly-title paste)))
      (div ([class "paste-row-2"])
-       ,@(if (paste-private? paste)
+       ,@(if (can-access-paste? paste (get-session-username))
            (list "["
                  `(a ([href ,(get-paste-source-url (paste-url paste))]) "src")
                  "]")
