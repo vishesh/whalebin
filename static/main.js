@@ -66,4 +66,33 @@ $(function() {
         get_state(update_state);
         return this;
     }
+
+    function setCanvasMaxWidth() {
+        var iframe = $("iframe.viewer")[0]
+        var canvases = iframe.contentDocument.getElementsByTagName("canvas");
+
+        if (canvases.length == 0) {
+            console.log("no canvases found, try again");
+            setTimeout(setCanvasMaxWidth, 1000); /* hack to resize to fit */
+            return;
+        }
+
+        var maxWidth = 0;
+        var maxHeight = 0;
+
+        for (var i = 0; i < canvases.length; i++) {
+            var canvas = canvases[i];
+            if (canvas.width > maxWidth) {
+                maxWidth = canvas.width;
+            }
+            if (canvas.height > maxHeight) {
+                maxHeight = canvas.height;
+            }
+        }
+
+        iframe.height = maxHeight + 100;
+        iframe.width = maxWidth + 100;
+    }
+
+    setTimeout(setCanvasMaxWidth, 100);
 });

@@ -237,8 +237,6 @@ EOF
                     `(iframe [(src ,(get-paste-full-url (paste-url paste)))
                               (class "viewer")
                               (allowfullscreen "true")
-                              (width "100%")
-                              (height "85%")
                               (frameborder "0")])
                     "Paste is not compiled yet! Try again in few seconds")))
       #:head-hooks (list `(script ([src "/favorite.js"]))))))
