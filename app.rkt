@@ -378,6 +378,7 @@ EOF
 ; serve-default : Request -> Response
 (define/session-handler (serve-default req)
   (define bindings (request-bindings req))
+  (define session-user (get-session-username))
   (define-values (title descp source)
                  (cond
                    [(exists-binding? 'fork-url bindings)
