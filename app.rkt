@@ -555,10 +555,12 @@ EOF
          (div ([class "row"])
            (div ([class "col-md-4"])
              (div 
+               (h3 "recent")
                (ul ([class "list-unstyled"])
                  ,@(map paste->xexpr (get-user-pastes userid)))))
            (div ([class "col-md-4"])
              (div 
+               (h3 "starred")
                (ul ([class "list-unstyled"])
                  ,@(map paste->xexpr (get-user-starred-pastes userid))))))))))
 
