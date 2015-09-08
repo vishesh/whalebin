@@ -132,7 +132,14 @@ EOF
        ,@head-hooks)
      (body
        ,(header-template username)
-       (div ([class "container"]) ,body))))
+       (div ([class "container"]) ,body)
+       (hr)
+       (div
+         (a ([href "https://github.com/vishesh/whalebin"] [target "_blank"]) "Browse Source")
+         " | "
+         (a ([href "https://github.com/vishesh/whalebin/issues"] [target "_blank"]) "Report Bugs")
+         " | "
+         (a ([href "https://github.com/soegaard/whalesong/"] [target "_blank"]) "Whalesong")))))
 
 ; paste -> xexpr?
 ; web representation for given paste
