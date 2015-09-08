@@ -201,7 +201,9 @@ EOF
             (div ([class "col-md-3"])
                  (p ([id "favorite"] [data-url ,(paste-url paste)]))
                  (div ([style "font-size: 120%"])
-                      (p (a ([href ,(get-paste-source-url (paste-url paste))] [class "btn btn-default"]) "Source") nbsp nbsp nbsp
+                      (p (a ([href ,(get-paste-source-url (paste-url paste))] [class "btn btn-default"]) "Source")
+                         (br) (br)
+                         (a ([href ,(get-paste-full-url (paste-url paste))] [class "btn btn-default"]) "Raw") nbsp nbsp nbsp  
                          (a ([onclick "goFullscreen('#whalesong-container'); return false;"] [class "btn btn-default"]) "Fullscreen"))
                       (p (h3 ,(paste-title paste))
                         ,(paste-descp paste))
