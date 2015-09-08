@@ -195,7 +195,7 @@ EOF
                  (p ([id "favorite"] [data-url ,(paste-url paste)]))
                  (div ([style "font-size: 120%"])
                       (p (a ([href ,(get-paste-source-url (paste-url paste))] [class "btn btn-default"]) "Source") nbsp nbsp nbsp
-                         (a ([href ,(get-paste-full-url (paste-url paste))] [class "btn btn-default"]) "Fullscreen"))
+                         (a ([onclick "goFullscreen('#whalesong-container'); return false;"] [class "btn btn-default"]) "Fullscreen"))
                       (p (h3 ,(paste-title paste))
                         ,(paste-descp paste))
                       (p ([class "paste-meta"]) 
@@ -234,10 +234,12 @@ EOF
                       (p ,@(social-buttons (get-paste-url (paste-url paste))))))
             (div ([class "col-md-9"])
                  ,(if (paste-output-ready? paste)
-                    `(iframe [(src ,(get-paste-full-url (paste-url paste)))
+                    `(div ([id "whalesong-container"])
+                       (iframe [(src ,(get-paste-full-url (paste-url paste)))
                               (class "viewer")
                               (allowfullscreen "true")
-                              (frameborder "0")])
+                              (scrolling "no") ; hack for Firefox
+                              (frameborder "0")]))
                     "Paste is not compiled yet! Try again in few seconds")))
       #:head-hooks (list `(script ([src "/favorite.js"]))))))
 

@@ -1,3 +1,12 @@
+function goFullscreen(selector) {
+    var element = $(selector)[0];
+    if (element.mozRequestFullScreen) {
+      element.mozRequestFullScreen();
+    } else if (element.webkitRequestFullScreen) {
+      element.webkitRequestFullScreen();
+   }
+}
+
 $(function() {
     // Source: http://jsfiddle.net/sdDVf/8/
     $("textarea").keydown(function(e) {
@@ -67,31 +76,32 @@ $(function() {
         return this;
     }
 
+    var resizeRetries = 0;
+
     function setCanvasMaxWidth() {
         var iframe = $("iframe.viewer")[0]
         var canvases = iframe.contentDocument.getElementsByTagName("canvas");
 
         if (canvases.length == 0) {
             console.log("no canvases found, try again");
-            setTimeout(setCanvasMaxWidth, 1000); /* hack to resize to fit */
+            iframe.height = "100%";
+            iframe.width = "85%";
+            if (resizeRetries < 10) {
+                setTimeout(setCanvasMaxWidth, 1000); /* hack to resize to fit */
+            }
             return;
         }
 
         var maxWidth = 0;
-        var maxHeight = 0;
-
         for (var i = 0; i < canvases.length; i++) {
             var canvas = canvases[i];
             if (canvas.width > maxWidth) {
                 maxWidth = canvas.width;
             }
-            if (canvas.height > maxHeight) {
-                maxHeight = canvas.height;
-            }
         }
 
-        iframe.height = maxHeight + 100;
-        iframe.width = maxWidth + 100;
+        iframe.width = maxWidth + 32;
+        iframe.height = "120%";
     }
 
     setTimeout(setCanvasMaxWidth, 100);

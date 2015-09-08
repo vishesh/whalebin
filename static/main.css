@@ -31,3 +31,35 @@ body {
 .paste-meta {
     font-size: 85%;
 }
+
+#whalesong-container {
+    margin: 0 auto;
+    padding: 0;
+}
+
+#whalesong-container:-webkit-full-screen {
+    margin: 0 auto;
+    display: block;
+    width: 100%;
+    height: 100%;
+    text-align: center;
+    background-color: rgba(255,255,255,255);
+}
+
+#whalesong-container:-moz-full-screen {
+    margin: 0 auto;
+    display: block;
+    width: 100%;
+    height: 100%;
+    text-align: center;
+    background-color: rgba(255,255,255,255);
+}
+
+#whalesong-container:fullscreen {
+    margin: 0 auto;
+    display: block;
+    width: 100%;
+    height: 100%;
+    text-align: center;
+    background-color: rgba(255,255,255,255);
+}
