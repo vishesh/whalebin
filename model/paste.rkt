@@ -135,12 +135,14 @@ EOF
 ; paste-source : Paste -> Port
 ; Source code of given paste
 (define (paste-source paste)
-  (repo-open-input-file REPO-SOURCE (paste-url paste)))
+  (call-with-input-file (repo-filepath REPO-SOURCE (paste-url paste))
+    port->string))
 
-; paste-web-output : Paste -> Port
+; paste-web-output : Paste -> Bytes
 ; HTML output of given paste
 (define (paste-web-output paste)
-  (repo-open-input-file REPO-OUTPUT (paste-url paste)))
+  (call-with-input-file (repo-filepath REPO-OUTPUT (paste-url paste))
+    port->bytes))
 
 ; TODO
 ; get-recent-pastes : Integer -> ListOf<Paste>

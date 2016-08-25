@@ -41,7 +41,7 @@ EOF
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;; 
+;;
 ;; Helpers
 
 (define (g-recaptcha-verified? request)
@@ -49,10 +49,10 @@ EOF
   (cond
     [(exists-binding? 'g-recaptcha-response bindings)
      (define response-token
-       (extract-binding/single 'g-recaptcha-response bindings)) 
+       (extract-binding/single 'g-recaptcha-response bindings))
      (define-values
        (status headers captcha-success-in)
-       (http-sendrecv/url 
+       (http-sendrecv/url
          (string->url "https://www.google.com/recaptcha/api/siteverify")
          #:method "POST"
          #:data (alist->form-urlencoded
@@ -79,7 +79,7 @@ EOF
 ; paste username? -> boolean
 (define (can-access-paste? paste username)
   (cond
-    [(and username (equal? (get-user-id username) (paste-userid paste))) #t]  
+    [(and username (equal? (get-user-id username) (paste-userid paste))) #t]
     [else (not (paste-private? paste))]))
 
 ; paste username -> boolean
@@ -104,7 +104,7 @@ EOF
                             (div ([class "form-group"])
                                  (input ([type "text"] [class "form-control"] [placeholder "Search"] [name "q"]))))
                       ,@(if username
-                          (list 
+                          (list
                             `(li (a ([href ,(profile-url username)]) ,username))
                             `(li (a ([href "/auth/signoff"]) "Sign Off")))
                           (list `(li (a ([href "/auth/signin"]) "Sign In"))
@@ -120,10 +120,10 @@ EOF
        (meta ([charset "utf-8"]))
        (link ([rel "stylesheet"]
               [type "text/css"]
-              [href "https://maxcdn.bootstrapcdn.com/bootstrap/3.3.4/css/bootstrap.min.css"])) 
+              [href "https://maxcdn.bootstrapcdn.com/bootstrap/3.3.4/css/bootstrap.min.css"]))
        (link ([rel "stylesheet"]
               [type "text/css"]
-              [href "https://maxcdn.bootstrapcdn.com/bootstrap/3.3.4/css/bootstrap-theme.min.css"])) 
+              [href "https://maxcdn.bootstrapcdn.com/bootstrap/3.3.4/css/bootstrap-theme.min.css"]))
        (script ([src "https://ajax.googleapis.com/ajax/libs/jquery/1.11.2/jquery.min.js"]))
        (script ([src "https://maxcdn.bootstrapcdn.com/bootstrap/3.3.4/js/bootstrap.min.js"]))
        (script ([src "https://www.google.com/recaptcha/api.js"])) ;; not needed everypage, but well...
@@ -181,7 +181,7 @@ EOF
          200 #"OK"
          (current-seconds) TEXT/HTML-MIME-TYPE
          '()
-         (list (port->bytes (paste-web-output paste))))]
+         (list (paste-web-output paste)))]
       [else (response/message (get-session-username)
                               "Paste is not compiled yet! Try again in few seconds")])
     (response/message session-user "Paste not found!")))
@@ -203,11 +203,11 @@ EOF
                  (div ([style "font-size: 120%"])
                       (p (a ([href ,(get-paste-source-url (paste-url paste))] [class "btn btn-default"]) "Source")
                          (br) (br)
-                         (a ([href ,(get-paste-full-url (paste-url paste))] [class "btn btn-default"]) "Raw") nbsp nbsp nbsp  
+                         (a ([href ,(get-paste-full-url (paste-url paste))] [class "btn btn-default"]) "Raw") nbsp nbsp nbsp
                          (a ([onclick "goFullscreen('#whalesong-container'); return false;"] [class "btn btn-default"]) "Fullscreen"))
                       (p (h3 ,(paste-title paste))
                         ,(paste-descp paste))
-                      (p ([class "paste-meta"]) 
+                      (p ([class "paste-meta"])
                         "Paste #" ,(paste-url paste) ,@(if (paste-private? paste)
                                                          (list 'nbsp "(private)")
                                                          (list))
@@ -272,7 +272,7 @@ EOF
                      (p (a ([href ,(get-paste-url (paste-url paste))] [class "btn btn-default"]) "Execute"))
                      (p (h3 ,(paste-title paste))
                         ,(paste-descp paste))
-                     (p ([class "paste-meta"]) 
+                     (p ([class "paste-meta"])
                         "Paste #" ,(paste-url paste) ,@(if (paste-private? paste)
                                                          (list 'nbsp "(private)")
                                                          (list))
@@ -309,7 +309,7 @@ EOF
            (div ([class "col-md-9"])
                 (pre
                   (code ([class "scheme"])
-                    (paste-source ,(port->string (paste-source paste)))))))
+                    (paste-source ,(paste-source paste))))))
         #:head-hooks (list `(script ([src "/highlight.pack.js"]))
                            `(script ([src "/favorite.js"]))
                            `(link ([rel "stylesheet"]
@@ -322,8 +322,8 @@ EOF
   (define bindings (request-bindings req))
   (define url (extract-binding/single 'url bindings))
   (define title (extract-binding/single 'title bindings))
-  (define descp (extract-binding/single 'descp bindings)) 
-  (define source (extract-binding/single 'source bindings)) 
+  (define descp (extract-binding/single 'descp bindings))
+  (define source (extract-binding/single 'source bindings))
   (define private? (and (exists-binding? 'private bindings)
                         (extract-binding/single 'private bindings)))
   (define paste (get-paste-by-name url))
@@ -395,7 +395,7 @@ EOF
                     (if (can-access-paste? paste session-user)
                       (values (paste-title paste)
                               (paste-descp paste)
-                              (port->string (paste-source paste)))
+                              (paste-source paste))
                       (values "" "" STARTER-TEMPLATE-CODE))]
                    [else (values "" "" STARTER-TEMPLATE-CODE)]))
   (response/xexpr
@@ -414,8 +414,9 @@ EOF
                               (paste-title paste)
                               (paste-descp paste)
                               (paste-private? paste)
-                              (port->string (paste-source paste)))
+                              (paste-source paste))
                       (values #f "" "" #f STARTER-TEMPLATE-CODE))]
+
                    [else (values #f "" "" #f STARTER-TEMPLATE-CODE)]))
   (response/xexpr
     (get-paste-edit-xexpr (format "edit ~a" url) title descp source private? "/edit-save" url)))
@@ -446,7 +447,7 @@ EOF
                  (h4 "recent pastes")
                  (ul ([class "list-unstyled"])
                    ,@(map paste->xexpr (get-recent-pastes 10))))
-            
+
             `(script  #<<EOF
                       var myCodeMirror = CodeMirror.fromTextArea(document.getElementById('source'), {
                         lineNumbers: true,
@@ -462,7 +463,7 @@ EOF
                                   $("nav").toggle(!cm.getOption("fullScreen"));
                                 }
                         }
-                      });  
+                      });
 EOF
                       ))
       #:head-hooks (list `(script ([src "https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.3.0/codemirror.min.js"]))
@@ -479,7 +480,7 @@ EOF
     (define req
       (send/suspend
         (λ (k-url)
-          (response/xexpr 
+          (response/xexpr
             (page-template
               "register"
               #f
@@ -514,7 +515,7 @@ EOF
     (define req
       (send/suspend
         (λ (k-url)
-          (response/xexpr 
+          (response/xexpr
             (page-template
               "signin"
               #f
@@ -563,12 +564,12 @@ EOF
          (h2 "profile: " ,username)
          (div ([class "row"])
            (div ([class "col-md-4"])
-             (div 
+             (div
                (h3 "recent")
                (ul ([class "list-unstyled"])
                  ,@(map paste->xexpr (get-user-pastes userid)))))
            (div ([class "col-md-4"])
-             (div 
+             (div
                (h3 "starred")
                (ul ([class "list-unstyled"])
                  ,@(map paste->xexpr (get-user-starred-pastes userid))))))))))
@@ -701,7 +702,7 @@ EOF
   (response/xexpr
     (page-template "message" user `(body (p ,msg)))))
 
-; do-dispatch : URL -> 
+; do-dispatch : URL ->
 (define-values (do-dispatch url)
   (dispatch-rules
     [("api" "upload") #:method "post" serve-api-upload]
