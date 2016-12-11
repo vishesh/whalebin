@@ -101,7 +101,7 @@ EOF
   (index-paste paste)
 
   ;; recompile if source changed
-  (when (not (equal? source/utf-8 (port->bytes (paste-source paste))))
+  (when (not (equal? source/utf-8 (paste-source paste)))
     (query-exec
       DB-CONN
       (format "INSERT INTO ~a (paste_id) VALUES (?)" TABLE-WORKER)
